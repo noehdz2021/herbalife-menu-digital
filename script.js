@@ -3,10 +3,13 @@ class MenuImageManager {
     constructor() {
         this.images = [];
         this.currentFilter = 'all';
+        this.supabaseReady = false;
         this.init();
     }
 
     async init() {
+        // Esperar a que Supabase esté listo
+        await this.waitForSupabase();
         await this.loadImages();
         this.renderImages();
         this.updateStats();
@@ -14,7 +17,41 @@ class MenuImageManager {
         this.setupRealtimeSubscription();
     }
 
+    async waitForSupabase() {
+        // Intentar inicializar Supabase
+        if (!supabase) {
+            const maxAttempts = 10;
+            let attempts = 0;
+            
+            while (attempts < maxAttempts && !supabase) {
+                if (initSupabase()) {
+                    this.supabaseReady = true;
+                    return;
+                }
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            if (!supabase) {
+                console.error('❌ No se pudo inicializar Supabase');
+                this.showMessage('Error: No se pudo conectar con la base de datos', 'error');
+                return;
+            }
+        }
+        this.supabaseReady = true;
+    }
+
+    checkSupabaseReady() {
+        if (!this.supabaseReady || !supabase) {
+            this.showMessage('Error: Base de datos no disponible. Recarga la página.', 'error');
+            return false;
+        }
+        return true;
+    }
+
     async loadImages() {
+        if (!this.checkSupabaseReady()) return;
+        
         try {
             const { data, error } = await supabase
                 .from('menu_images')
@@ -57,6 +94,8 @@ class MenuImageManager {
     }
 
     async uploadImages() {
+        if (!this.checkSupabaseReady()) return;
+
         const fileInput = document.getElementById('imageInput');
         const category = document.getElementById('imageCategory').value;
         const title = document.getElementById('imageTitle').value;
@@ -142,6 +181,8 @@ class MenuImageManager {
     }
 
     async deleteImage(id) {
+        if (!this.checkSupabaseReady()) return;
+        
         if (confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
             try {
                 // Obtener información de la imagen para eliminar archivo
@@ -180,6 +221,8 @@ class MenuImageManager {
     }
 
     async toggleImage(id) {
+        if (!this.checkSupabaseReady()) return;
+        
         try {
             const image = this.images.find(img => img.id === id);
             if (image) {
@@ -201,6 +244,8 @@ class MenuImageManager {
     }
 
     async updateImageDuration(id, duration) {
+        if (!this.checkSupabaseReady()) return;
+        
         if (duration >= 1 && duration <= 60) {
             try {
                 const { error } = await supabase
@@ -224,6 +269,8 @@ class MenuImageManager {
     }
 
     async updateImageRepeat(id, repeat) {
+        if (!this.checkSupabaseReady()) return;
+        
         if (repeat >= 1 && repeat <= 10) {
             try {
                 const { error } = await supabase
@@ -332,6 +379,8 @@ class MenuImageManager {
     }
 
     async exportData() {
+        if (!this.checkSupabaseReady()) return;
+        
         try {
             const { data, error } = await supabase
                 .from('menu_images')

@@ -7,10 +7,12 @@ class MenuDisplay {
         this.timeIntervalId = null;
         this.isActive = true;
         this.currentSlideId = 'slide1'; // Rastrear cuál slide está activo
+        this.supabaseReady = false;
         this.init();
     }
 
     async init() {
+        await this.waitForSupabase();
         await this.loadData();
         this.setupClock();
         this.startSlideshow();
@@ -19,7 +21,39 @@ class MenuDisplay {
         this.hideLoadingScreen();
     }
 
+    async waitForSupabase() {
+        // Intentar inicializar Supabase
+        if (!supabase) {
+            const maxAttempts = 10;
+            let attempts = 0;
+            
+            while (attempts < maxAttempts && !supabase) {
+                if (initSupabase()) {
+                    this.supabaseReady = true;
+                    return;
+                }
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            if (!supabase) {
+                console.error('❌ No se pudo inicializar Supabase en display');
+                return;
+            }
+        }
+        this.supabaseReady = true;
+    }
+
+    checkSupabaseReady() {
+        return this.supabaseReady && supabase;
+    }
+
     async loadData() {
+        if (!this.checkSupabaseReady()) {
+            this.createPlaceholderImage();
+            return;
+        }
+        
         try {
             // Cargar imágenes desde Supabase
             const { data, error } = await supabase
@@ -83,6 +117,8 @@ class MenuDisplay {
     }
 
     setupRealtimeSubscription() {
+        if (!this.checkSupabaseReady()) return;
+        
         // Suscribirse a cambios en tiempo real
         supabase
             .channel('menu_images_display')
@@ -285,7 +321,9 @@ class MenuDisplay {
         document.getElementById('slide1').classList.add('active');
         document.getElementById('slide2').classList.remove('active');
         
-        await this.loadData();
+        if (this.checkSupabaseReady()) {
+            await this.loadData();
+        }
         this.startSlideshow();
     }
 
@@ -328,6 +366,11 @@ async function reloadMenuData() {
 
 // Función para exportar logs de display
 async function exportDisplayLogs() {
+    if (!window.menuDisplay || !window.menuDisplay.checkSupabaseReady()) {
+        console.error('❌ Supabase no está disponible');
+        return null;
+    }
+    
     try {
         const { data, error } = await supabase
             .from('menu_images')
