@@ -10,39 +10,54 @@ class MenuDisplay {
         this.init();
     }
 
-    init() {
-        this.loadData();
+    async init() {
+        await this.loadData();
         this.setupClock();
         this.startSlideshow();
         this.setupEventListeners();
+        this.setupRealtimeSubscription();
         this.hideLoadingScreen();
     }
 
-    loadData() {
-        // Cargar imágenes desde localStorage
-        const storedImages = JSON.parse(localStorage.getItem('menuImages') || '[]');
-        
-        // Filtrar solo imágenes activas y procesar repeticiones
-        const activeImages = storedImages.filter(img => img.active);
-        this.images = [];
-        
-        activeImages.forEach(img => {
-            const repeat = img.repeat || 1;
-            // Crear múltiples instancias de la imagen según su repetición
-            for (let i = 0; i < repeat; i++) {
-                this.images.push({
-                    ...img,
-                    duration: img.duration || 5, // Valor por defecto si no tiene duración
-                    uniqueId: `${img.id}_${i}` // ID único para cada repetición
-                });
+    async loadData() {
+        try {
+            // Cargar imágenes desde Supabase
+            const { data, error } = await supabase
+                .from('menu_images')
+                .select('*')
+                .eq('active', true)
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                throw error;
             }
-        });
-        
-        // Mezclar las imágenes para distribuir las repeticiones
-        this.shuffleImages();
-        
-        // Si no hay imágenes, crear una imagen de placeholder
-        if (this.images.length === 0) {
+            
+            // Procesar repeticiones
+            const activeImages = data || [];
+            this.images = [];
+            
+            activeImages.forEach(img => {
+                const repeat = img.repeat || 1;
+                // Crear múltiples instancias de la imagen según su repetición
+                for (let i = 0; i < repeat; i++) {
+                    this.images.push({
+                        ...img,
+                        duration: img.duration || 5, // Valor por defecto si no tiene duración
+                        uniqueId: `${img.id}_${i}` // ID único para cada repetición
+                    });
+                }
+            });
+            
+            // Mezclar las imágenes para distribuir las repeticiones
+            this.shuffleImages();
+            
+            // Si no hay imágenes, crear una imagen de placeholder
+            if (this.images.length === 0) {
+                this.createPlaceholderImage();
+            }
+            
+        } catch (error) {
+            console.error('Error cargando datos:', error);
             this.createPlaceholderImage();
         }
     }
@@ -65,6 +80,22 @@ class MenuDisplay {
             src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjRjBGOEZGIi8+CjxjaXJjbGUgY3g9IjQwMCIgY3k9IjI1MCIgcj0iNTAiIGZpbGw9IiMyRThCNTciLz4KPHN2ZyB4PSIzNzUiIHk9IjIyNSIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0yNSA1TDUgMjBMMjAgMzVMMzUgMjBMMjUgNVoiIGZpbGw9IndoaXRlIi8+CjwvZz4KPHRleHQgeD0iNDAwIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMkU4QjU3Ij7wn42/IEJpZW52ZW5pZG8gYSBIZXJiYWxpZmU8L3RleHQ+Cjx0ZXh0IHg9IjQwMCIgeT0iMzg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjNjY2NjY2Ij5OdXRyaWNpw7NuIHBhcmEgdW5hIHZpZGEgYWN0aXZhPC90ZXh0Pgo8L3N2Zz4=',
             active: true
         }];
+    }
+
+    setupRealtimeSubscription() {
+        // Suscribirse a cambios en tiempo real
+        supabase
+            .channel('menu_images_display')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'menu_images' }, 
+                (payload) => {
+                    console.log('Cambio detectado en display:', payload);
+                    this.loadData().then(() => {
+                        this.restart();
+                    });
+                }
+            )
+            .subscribe();
     }
 
     setupClock() {
@@ -183,14 +214,6 @@ class MenuDisplay {
 
 
     setupEventListeners() {
-        // Detectar cambios en localStorage para actualizar en tiempo real
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'menuImages') {
-                this.loadData();
-                this.restart();
-            }
-        });
-        
         // Detectar cuando la página se vuelve visible/invisible
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -223,7 +246,6 @@ class MenuDisplay {
             // Recargar datos con F5
             if (e.key === 'F5') {
                 e.preventDefault();
-                this.loadData();
                 this.restart();
             }
         });
@@ -254,7 +276,7 @@ class MenuDisplay {
         this.scheduleNextTransition();
     }
 
-    restart() {
+    async restart() {
         this.pause();
         this.currentIndex = 0;
         this.currentSlideId = 'slide1';
@@ -263,6 +285,7 @@ class MenuDisplay {
         document.getElementById('slide1').classList.add('active');
         document.getElementById('slide2').classList.remove('active');
         
+        await this.loadData();
         this.startSlideshow();
     }
 
@@ -297,25 +320,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // Función para recargar datos desde la consola del navegador
-function reloadMenuData() {
+async function reloadMenuData() {
     if (window.menuDisplay) {
-        window.menuDisplay.loadData();
-        window.menuDisplay.restart();
+        await window.menuDisplay.restart();
     }
 }
 
 // Función para exportar logs de display
-function exportDisplayLogs() {
-    const logs = {
-        timestamp: new Date().toISOString(),
-        images: JSON.parse(localStorage.getItem('menuImages') || '[]'),
-        userAgent: navigator.userAgent,
-        screenResolution: `${screen.width}x${screen.height}`,
-        windowSize: `${window.innerWidth}x${window.innerHeight}`
-    };
-    
-    console.log('Display Logs:', logs);
-    return logs;
+async function exportDisplayLogs() {
+    try {
+        const { data, error } = await supabase
+            .from('menu_images')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        const logs = {
+            timestamp: new Date().toISOString(),
+            images: data || [],
+            userAgent: navigator.userAgent,
+            screenResolution: `${screen.width}x${screen.height}`,
+            windowSize: `${window.innerWidth}x${window.innerHeight}`,
+            source: 'Supabase'
+        };
+        
+        console.log('Display Logs:', logs);
+        return logs;
+    } catch (error) {
+        console.error('Error exportando logs:', error);
+        return null;
+    }
 }
 
 // Detectar errores de carga de imágenes

@@ -1,15 +1,53 @@
 // Clase principal para gestionar las imágenes del menú
 class MenuImageManager {
     constructor() {
-        this.images = JSON.parse(localStorage.getItem('menuImages') || '[]');
+        this.images = [];
         this.currentFilter = 'all';
         this.init();
     }
 
-    init() {
+    async init() {
+        await this.loadImages();
         this.renderImages();
         this.updateStats();
         this.setupEventListeners();
+        this.setupRealtimeSubscription();
+    }
+
+    async loadImages() {
+        try {
+            const { data, error } = await supabase
+                .from('menu_images')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                handleSupabaseError(error, 'loadImages');
+                return;
+            }
+            
+            this.images = data || [];
+        } catch (error) {
+            console.error('Error cargando imágenes:', error);
+            this.images = [];
+        }
+    }
+
+    setupRealtimeSubscription() {
+        // Suscribirse a cambios en tiempo real
+        supabase
+            .channel('menu_images_changes')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'menu_images' }, 
+                (payload) => {
+                    console.log('Cambio detectado:', payload);
+                    this.loadImages().then(() => {
+                        this.renderImages();
+                        this.updateStats();
+                    });
+                }
+            )
+            .subscribe();
     }
 
     setupEventListeners() {
@@ -18,7 +56,7 @@ class MenuImageManager {
         document.addEventListener('drop', (e) => e.preventDefault());
     }
 
-    uploadImages() {
+    async uploadImages() {
         const fileInput = document.getElementById('imageInput');
         const category = document.getElementById('imageCategory').value;
         const title = document.getElementById('imageTitle').value;
@@ -41,76 +79,168 @@ class MenuImageManager {
             return;
         }
 
-        Array.from(files).forEach((file, index) => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
+        this.showMessage('Subiendo imágenes...', 'info');
+
+        try {
+            const uploadPromises = Array.from(files).map(async (file, index) => {
+                if (file.type.startsWith('image/')) {
+                    // Generar nombre único para el archivo
+                    const fileExtension = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${index}.${fileExtension}`;
+                    
+                    // Subir imagen a Supabase Storage
+                    const { data: storageData, error: storageError } = await supabase.storage
+                        .from('menu-images')
+                        .upload(fileName, file);
+                    
+                    if (storageError) {
+                        throw storageError;
+                    }
+                    
+                    // Obtener URL pública
+                    const { data: urlData } = supabase.storage
+                        .from('menu-images')
+                        .getPublicUrl(fileName);
+                    
+                    // Guardar metadatos en base de datos
                     const imageData = {
-                        id: Date.now() + index,
                         title: files.length > 1 ? `${title} ${index + 1}` : title,
                         category: category,
-                        src: e.target.result,
+                        src: urlData.publicUrl,
                         duration: duration,
                         repeat: repeat || 1,
-                        active: true,
-                        createdAt: new Date().toISOString()
+                        active: true
                     };
                     
-                    this.images.push(imageData);
-                    this.saveImages();
-                    this.renderImages();
-                    this.updateStats();
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+                    const { data: dbData, error: dbError } = await supabase
+                        .from('menu_images')
+                        .insert([imageData])
+                        .select();
+                    
+                    if (dbError) {
+                        throw dbError;
+                    }
+                    
+                    return dbData[0];
+                }
+            });
 
-        // Limpiar formulario
-        fileInput.value = '';
-        document.getElementById('imageTitle').value = '';
-        document.getElementById('imageDuration').value = '5';
-        document.getElementById('imageRepeat').value = '1';
-        this.showMessage('Imágenes subidas exitosamente', 'success');
+            await Promise.all(uploadPromises);
+            
+            // Limpiar formulario
+            fileInput.value = '';
+            document.getElementById('imageTitle').value = '';
+            document.getElementById('imageDuration').value = '5';
+            document.getElementById('imageRepeat').value = '1';
+            
+            this.showMessage('Imágenes subidas exitosamente', 'success');
+            
+        } catch (error) {
+            console.error('Error subiendo imágenes:', error);
+            this.showMessage('Error al subir imágenes: ' + error.message, 'error');
+        }
     }
 
-    deleteImage(id) {
+    async deleteImage(id) {
         if (confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
-            this.images = this.images.filter(img => img.id !== id);
-            this.saveImages();
-            this.renderImages();
-            this.updateStats();
-            this.showMessage('Imagen eliminada exitosamente', 'success');
+            try {
+                // Obtener información de la imagen para eliminar archivo
+                const image = this.images.find(img => img.id === id);
+                if (image) {
+                    // Extraer nombre del archivo de la URL
+                    const fileName = image.src.split('/').pop();
+                    
+                    // Eliminar archivo de Storage
+                    const { error: storageError } = await supabase.storage
+                        .from('menu-images')
+                        .remove([fileName]);
+                    
+                    if (storageError) {
+                        console.warn('Error eliminando archivo de storage:', storageError);
+                    }
+                }
+                
+                // Eliminar registro de base de datos
+                const { error } = await supabase
+                    .from('menu_images')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                this.showMessage('Imagen eliminada exitosamente', 'success');
+                
+            } catch (error) {
+                console.error('Error eliminando imagen:', error);
+                this.showMessage('Error al eliminar imagen', 'error');
+            }
         }
     }
 
-    toggleImage(id) {
-        const image = this.images.find(img => img.id === id);
-        if (image) {
-            image.active = !image.active;
-            this.saveImages();
-            this.renderImages();
-            this.updateStats();
+    async toggleImage(id) {
+        try {
+            const image = this.images.find(img => img.id === id);
+            if (image) {
+                const { data, error } = await supabase
+                    .from('menu_images')
+                    .update({ active: !image.active })
+                    .eq('id', id);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                this.showMessage(`Imagen ${!image.active ? 'activada' : 'desactivada'} exitosamente`, 'success');
+            }
+        } catch (error) {
+            console.error('Error actualizando imagen:', error);
+            this.showMessage('Error al actualizar imagen', 'error');
         }
     }
 
-    updateImageDuration(id, duration) {
-        const image = this.images.find(img => img.id === id);
-        if (image && duration >= 1 && duration <= 60) {
-            image.duration = duration;
-            this.saveImages();
-            this.updateStats();
-            this.showMessage('Duración actualizada exitosamente', 'success');
+    async updateImageDuration(id, duration) {
+        if (duration >= 1 && duration <= 60) {
+            try {
+                const { error } = await supabase
+                    .from('menu_images')
+                    .update({ duration: parseInt(duration) })
+                    .eq('id', id);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                this.showMessage('Duración actualizada exitosamente', 'success');
+                
+            } catch (error) {
+                console.error('Error actualizando duración:', error);
+                this.showMessage('Error al actualizar duración', 'error');
+            }
         } else {
             this.showMessage('La duración debe estar entre 1 y 60 segundos', 'error');
         }
     }
 
-    updateImageRepeat(id, repeat) {
-        const image = this.images.find(img => img.id === id);
-        if (image && repeat >= 1 && repeat <= 10) {
-            image.repeat = repeat;
-            this.saveImages();
-            this.showMessage('Repetición actualizada exitosamente', 'success');
+    async updateImageRepeat(id, repeat) {
+        if (repeat >= 1 && repeat <= 10) {
+            try {
+                const { error } = await supabase
+                    .from('menu_images')
+                    .update({ repeat: parseInt(repeat) })
+                    .eq('id', id);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                this.showMessage('Repetición actualizada exitosamente', 'success');
+                
+            } catch (error) {
+                console.error('Error actualizando repetición:', error);
+                this.showMessage('Error al actualizar repetición', 'error');
+            }
         } else {
             this.showMessage('La repetición debe estar entre 1 y 10 veces', 'error');
         }
@@ -201,27 +331,39 @@ class MenuImageManager {
         document.getElementById('avgDuration').textContent = avgDuration + 's';
     }
 
-    saveImages() {
-        localStorage.setItem('menuImages', JSON.stringify(this.images));
-    }
-
-    exportData() {
-        const data = {
-            images: this.images,
-            exportDate: new Date().toISOString()
-        };
-        
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `menu-herbalife-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.showMessage('Datos exportados exitosamente', 'success');
+    async exportData() {
+        try {
+            const { data, error } = await supabase
+                .from('menu_images')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                throw error;
+            }
+            
+            const exportData = {
+                images: data,
+                exportDate: new Date().toISOString(),
+                source: 'Supabase'
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `menu-herbalife-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            this.showMessage('Datos exportados exitosamente', 'success');
+            
+        } catch (error) {
+            console.error('Error exportando datos:', error);
+            this.showMessage('Error al exportar datos', 'error');
+        }
     }
 
     importData(event) {
