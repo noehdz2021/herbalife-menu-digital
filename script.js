@@ -18,35 +18,32 @@ class MenuImageManager {
     }
 
     async waitForSupabase() {
-        // Intentar inicializar Supabase
-        const maxAttempts = 20;
+        const maxAttempts = 40;
         let attempts = 0;
         
-        while (attempts < maxAttempts && !supabase) {
-            // Esperar un poco para que la librería de Supabase se cargue
-            await new Promise(resolve => setTimeout(resolve, 250));
+        while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 150));
             
-            if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+            // Intentar crear el cliente de Supabase si no existe
+            if (!supabase && typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
                 try {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    this.supabaseReady = true;
-                    console.log('✅ Supabase inicializado correctamente en script.js');
-                    return;
+                    console.log('✅ Supabase inicializado correctamente en admin');
                 } catch (error) {
-                    console.error('Error inicializando Supabase:', error);
+                    console.error('Error creando cliente Supabase:', error);
                 }
+            }
+            
+            if (supabase) {
+                this.supabaseReady = true;
+                return;
             }
             
             attempts++;
         }
         
-        if (!supabase) {
-            console.error('❌ No se pudo inicializar Supabase después de', maxAttempts, 'intentos');
-            this.showMessage('Error: No se pudo conectar con la base de datos', 'error');
-            return;
-        }
-        
-        this.supabaseReady = true;
+        console.error('❌ No se pudo inicializar Supabase después de', maxAttempts, 'intentos');
+        this.showMessage('Error: No se pudo conectar con la base de datos. Recarga la página.', 'error');
     }
 
     checkSupabaseReady() {

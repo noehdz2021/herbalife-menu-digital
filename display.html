@@ -32,6 +32,21 @@
     </div>
 
     <script src="supabase-config.js"></script>
+    <script>
+        // Inicializar Supabase cuando todo esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+                    if (!supabase) {
+                        supabase = createSupabaseClient();
+                        if (supabase) {
+                            console.log('✅ Supabase inicializado desde HTML display');
+                        }
+                    }
+                }
+            }, 500);
+        });
+    </script>
     <script src="display-script.js"></script>
 </body>
 </html> 

@@ -3,33 +3,14 @@ const SUPABASE_URL = 'https://lymemgizqpyowwzqeguv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bWVtZ2p6cXB5b3d3enFlZ3V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MTAwODIsImV4cCI6MjA2ODE4NjA4Mn0.5pqVut8aqwDrOibT-D-ypbLCeu0CHjqQboJe-M3vaGg';
 
 // Variable global para el cliente de Supabase
-let supabase = null;
+var supabase = null;
 
-// Función para inicializar Supabase
-function initSupabase() {
-    try {
-        if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase inicializado correctamente');
-            return true;
-        } else {
-            console.error('❌ Error: Librería de Supabase no disponible');
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ Error inicializando Supabase:', error);
-        return false;
+// Función para inicializar Supabase de forma síncrona
+function createSupabaseClient() {
+    if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+        return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
-}
-
-// Intentar inicializar inmediatamente si la librería ya está disponible
-if (typeof window !== 'undefined' && window.supabase) {
-    initSupabase();
-} else {
-    // Si no está disponible, intentar cuando el DOM esté listo
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(initSupabase, 100);
-    });
+    return null;
 }
 
 // Función helper para generar URLs de Storage
