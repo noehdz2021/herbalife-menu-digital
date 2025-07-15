@@ -1,158 +1,147 @@
-# 🌿 Sistema de Menú Digital - Herbalife
+# 🌿 Herbalife - Menú Digital
 
-Un sistema completo para gestionar y mostrar menús digitales en pantallas de cafeterías y puntos de venta de Herbalife.
-
-## ✨ Características
-
-### 📱 Página de Administración (`index.html`)
-- **Subida de imágenes**: Arrastra y suelta o selecciona múltiples imágenes
-- **Gestión de categorías**: Bebidas, Productos, Ofertas, Información
-- **Control de tiempo**: Configura el tiempo de transición entre imágenes (1-60 segundos)
-- **Filtros**: Filtra imágenes por categoría
-- **Activación/Desactivación**: Control individual de cada imagen
-- **Estadísticas**: Visualiza el total de imágenes y las activas
-- **Exportación**: Descarga los datos en formato JSON
-
-### 📺 Página de Display (`display.html`)
-- **Slideshow automático**: Transiciones suaves entre imágenes
-- **Reloj en tiempo real**: Muestra la hora actual
-- **Barra de progreso**: Indica el tiempo restante para la siguiente imagen
-- **Indicador de categoría**: Muestra la categoría actual
-- **Diseño responsive**: Se adapta a diferentes tamaños de pantalla
-- **Controles de teclado**: Navegación manual y pausa/reanudación
-
-## 🚀 Uso del Sistema
-
-### 1. Configuración Inicial
-1. Abre `index.html` en tu navegador
-2. Configura el tiempo de transición deseado
-3. Haz clic en "Guardar" para aplicar los cambios
-
-### 2. Subir Imágenes
-1. Selecciona la categoría apropiada
-2. Escribe un título descriptivo
-3. Arrastra las imágenes o usa el botón "Seleccionar archivos"
-4. Haz clic en "Subir Imágenes"
-
-### 3. Gestión de Contenido
-- **Filtrar**: Usa el selector de categorías para ver imágenes específicas
-- **Activar/Desactivar**: Usa el interruptor junto a cada imagen
-- **Eliminar**: Haz clic en el botón "Eliminar" (requiere confirmación)
-
-### 4. Mostrar en Pantalla
-1. Haz clic en "📺 Ver Pantalla" para abrir la página de display
-2. Coloca la ventana en modo pantalla completa (F11)
-3. Las imágenes se mostrarán automáticamente según la configuración
-
-## 🎮 Controles de la Pantalla de Display
-
-### Teclado
-- **Barra espaciadora**: Pausar/Reanudar slideshow
-- **Flecha izquierda**: Imagen anterior
-- **Flecha derecha**: Imagen siguiente
-- **F5**: Recargar datos desde la administración
-- **Clic en pantalla**: Reiniciar slideshow
-
-### Características Automáticas
-- **Sincronización**: Los cambios en administración se reflejan automáticamente
-- **Pausa inteligente**: Se pausa cuando la ventana no está visible
-- **Cursor oculto**: Se oculta automáticamente después de 3 segundos de inactividad
+Sistema minimalista para gestionar y mostrar imágenes en pantallas digitales para cafés Herbalife.
 
 ## 📁 Estructura del Proyecto
 
 ```
 remote-herbalife/
-├── index.html              # Página de administración
-├── display.html            # Página de display/pantalla
-├── styles.css              # Estilos para administración
-├── display-styles.css      # Estilos para display
-├── script.js               # JavaScript para administración
-├── display-script.js       # JavaScript para display
-└── README.md              # Este archivo
+├── index.html              # Interfaz de administración (minimalista)
+├── script.js               # Lógica de administración
+├── display.html            # Pantalla de visualización
+├── display-script.js       # Lógica de visualización con repetición aleatoria
+├── styles.css              # Estilos principales (colores Herbalife)
+├── display-styles.css      # Estilos para pantalla de visualización
+├── README.md               # Este archivo
+├── INSTRUCCIONES-CONFIGURACION.md  # Guía de configuración
+├── database-setup.sql      # Script de configuración de base de datos
+├── storage-setup.sql       # Script de configuración de storage
+└── supabase-setup.sql      # Script completo de configuración
 ```
 
-## 🔧 Características Técnicas
+## 🎨 Características
 
-### Almacenamiento
-- **LocalStorage**: Los datos se guardan localmente en el navegador
-- **Formato JSON**: Exportación e importación de datos
-- **Persistencia**: Los datos se mantienen entre sesiones
+### **Colores Oficiales de Herbalife:**
+- **Verde Principal:** `#00A651`
+- **Verde Oscuro:** `#007A3D`
+- **Verde Claro:** `#7ED321`
+- **Naranja:** `#FF6B35`
+- **Amarillo:** `#FFD700`
 
-### Compatibilidad
-- **Navegadores modernos**: Chrome, Firefox, Safari, Edge
-- **Responsive**: Se adapta a pantallas de diferentes tamaños
-- **Formatos de imagen**: JPEG, PNG, GIF, WebP
+### **Funcionalidades:**
+- ✅ **Subida de imágenes** con drag & drop
+- ✅ **Categorización:** Bebidas, Productos, Ofertas, Información
+- ✅ **Control de duración:** 1-60 segundos por imagen
+- ✅ **Repetición aleatoria:** 1-10 veces por imagen
+- ✅ **Visualización a pantalla completa** con reloj
+- ✅ **Sincronización en tiempo real** con Supabase
+- ✅ **Interfaz minimalista** y fácil de usar
 
-### Rendimiento
-- **Optimizado**: Carga eficiente de imágenes
-- **Smooth transitions**: Transiciones suaves sin parpadeo
-- **Memory management**: Limpieza automática de intervalos
+## 🚀 Instalación
 
-## 🎨 Personalización
+### 1. Configurar Supabase
+Sigue las instrucciones en `INSTRUCCIONES-CONFIGURACION.md` para:
+- Crear proyecto en Supabase
+- Configurar base de datos
+- Configurar storage
+- Obtener credenciales
 
-### Colores de Marca
-```css
-:root {
-    --primary-color: #2E8B57;    /* Verde Herbalife */
-    --secondary-color: #98FB98;  /* Verde claro */
-    --accent-color: #FFD700;     /* Dorado */
-}
+### 2. Actualizar Credenciales
+Edita `script.js` y `display-script.js` con tus credenciales de Supabase:
+```javascript
+const SUPABASE_URL = 'tu-url-de-supabase';
+const SUPABASE_ANON_KEY = 'tu-anon-key';
 ```
 
-### Categorías
-Puedes modificar las categorías en ambos archivos JavaScript:
-- Bebidas 🥤
-- Productos 🌿
-- Ofertas 🎯
-- Información ℹ️
+### 3. Ejecutar
+Abre `index.html` en tu navegador para acceder al panel de administración.
 
-## 🛠️ Solución de Problemas
+## 📖 Uso
 
-### Las imágenes no se muestran
-1. Verifica que las imágenes estén activas en la administración
-2. Asegúrate de que el formato sea compatible
-3. Recarga la página de display (F5)
+### **Panel de Administración (`index.html`):**
+1. **Subir imágenes:** Selecciona archivos, categoría, título, duración y repetición
+2. **Editar configuración:** Usa los controles inline para ajustar duración y repetición
+3. **Ver pantalla:** Haz clic en "📺 Pantalla" para abrir la visualización
+4. **Eliminar:** Usa el botón 🗑️ para eliminar imágenes
 
-### El slideshow no cambia
-1. Verifica que haya más de una imagen activa
-2. Comprueba que el tiempo de transición sea mayor a 0
-3. Asegúrate de que la página esté visible (no minimizada)
+### **Pantalla de Visualización (`display.html`):**
+- **Pantalla completa:** Las imágenes cubren toda la pantalla
+- **Reloj:** Muestra la hora actual en la esquina superior derecha
+- **Repetición aleatoria:** Las imágenes aparecen de forma aleatoria según su configuración
+- **Transiciones suaves:** Cambios automáticos con efectos de fade
 
-### Los datos se perdieron
-1. Los datos se almacenan en localStorage del navegador
-2. Usar el botón "Exportar Datos" regularmente como respaldo
-3. Evita limpiar los datos del navegador
+## ⚙️ Configuración
 
-## 📱 Uso Recomendado
+### **Duración:**
+- **Rango:** 1-60 segundos
+- **Por defecto:** 5 segundos
+- **Edición:** Controles inline en cada imagen
 
-### Para Cafeterías
-1. Configura un tiempo de transición de 5-8 segundos
-2. Usa imágenes de alta calidad (1920x1080 recomendado)
-3. Organiza por categorías: bebidas, productos, ofertas
-4. Actualiza las ofertas regularmente
+### **Repetición:**
+- **Rango:** 1-10 veces
+- **Comportamiento:** Aleatorio (no secuencial)
+- **Reset automático:** Cuando todas las repeticiones se agotan, se reinician
 
-### Para Puntos de Venta
-1. Tiempo de transición más rápido (3-5 segundos)
-2. Enfócate en productos y promociones
-3. Usa imágenes llamativas y textos legibles
-4. Incluye información de contacto
+### **Categorías:**
+- 🥤 **Bebidas:** Batidos, tés, etc.
+- 🌿 **Productos:** Suplementos, productos Herbalife
+- 🎯 **Ofertas:** Promociones y descuentos
+- ℹ️ **Información:** Información general
 
-## 🔐 Consejos de Seguridad
+## 🔧 Tecnologías
 
-1. **Respaldo regular**: Exporta los datos frecuentemente
-2. **Imágenes optimizadas**: Usa imágenes de tamaño apropiado
-3. **Navegador dedicado**: Usa un navegador solo para el display
-4. **Modo kiosco**: Considera usar extensiones de modo kiosco
+- **Frontend:** HTML5, CSS3, JavaScript ES6+
+- **Backend:** Supabase (PostgreSQL + Storage)
+- **Tiempo real:** WebSockets con Supabase
+- **Diseño:** Responsive con colores Herbalife
 
-## 🆘 Soporte
+## 📱 Responsive
 
-Para obtener ayuda o reportar problemas:
-1. Revisa este README
-2. Verifica la consola del navegador (F12)
-3. Asegúrate de usar un navegador compatible
-4. Guarda una copia de seguridad antes de hacer cambios
+El sistema funciona en:
+- 💻 **Desktop:** Panel completo con todas las funciones
+- 📱 **Tablet:** Interfaz adaptada para pantallas medianas
+- 📺 **TV/Pantalla:** Modo pantalla completa optimizado
+
+## 🎯 Características Especiales
+
+### **Repetición Aleatoria:**
+- Las imágenes no aparecen secuencialmente
+- Cada imagen tiene un contador de repeticiones restantes
+- Cuando se agotan todas las repeticiones, se reinician automáticamente
+- Distribución equilibrada de todas las imágenes
+
+### **Sincronización en Tiempo Real:**
+- Cambios instantáneos entre admin y display
+- No requiere refrescar páginas
+- Conexión automática con reconexión
+
+### **Interfaz Minimalista:**
+- Diseño limpio y enfocado
+- Controles intuitivos
+- Colores corporativos de Herbalife
+- Sin elementos innecesarios
+
+## 🐛 Solución de Problemas
+
+### **Error de Conexión:**
+1. Verifica credenciales de Supabase
+2. Revisa conexión a internet
+3. Usa el botón "🔄 Reconectar BD"
+
+### **Imágenes no se muestran:**
+1. Verifica que estén marcadas como "Activas"
+2. Revisa permisos de storage en Supabase
+3. Comprueba formato de archivo (JPG, PNG, etc.)
+
+### **Repetición no funciona:**
+1. Verifica que el valor esté entre 1-10
+2. Recarga la pantalla de display
+3. Comprueba que haya múltiples imágenes activas
+
+## 📄 Licencia
+
+Este proyecto está diseñado específicamente para uso con Herbalife y sus colores corporativos.
 
 ---
 
-**Desarrollado para Herbalife** 🌿  
-*Nutrición para una vida activa* 
+**🌿 Herbalife - Nutrición para una vida activa** 

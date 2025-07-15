@@ -1,8 +1,13 @@
+// Credenciales de Supabase (para asegurar disponibilidad)
+const SUPABASE_URL = 'https://tmfwggfraxvpbjnpttnx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtZndnZ2ZyYXh2cGJqbnB0dG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MTI0NDIsImV4cCI6MjA2ODE4ODQ0Mn0.Roojl7R6KXicFlSt17Bqp5Sa_nIpvwsQxdlZ6VtovSc';
+
 // Clase para gestionar el display del menú
 class MenuDisplay {
     constructor() {
         this.images = [];
         this.currentIndex = 0;
+        this.currentImage = null; // Rastrear la imagen actual
         this.transitionTimeout = null;
         this.timeIntervalId = null;
         this.isActive = true;
@@ -12,6 +17,9 @@ class MenuDisplay {
     }
 
     async init() {
+        // Esperar un poco para que la biblioteca se cargue completamente
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         await this.waitForSupabase();
         await this.loadData();
         this.setupClock();
@@ -22,31 +30,41 @@ class MenuDisplay {
     }
 
     async waitForSupabase() {
-        const maxAttempts = 40;
-        let attempts = 0;
+        console.log('🔄 Iniciando proceso de conexión con Supabase en display...');
         
-        while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 150));
-            
-            // Intentar crear el cliente de Supabase si no existe
-            if (!supabase && typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
-                try {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    console.log('✅ Supabase inicializado correctamente en display');
-                } catch (error) {
-                    console.error('Error creando cliente Supabase en display:', error);
-                }
-            }
-            
-            if (supabase) {
-                this.supabaseReady = true;
-                return;
-            }
-            
-            attempts++;
+        // Verificar que la biblioteca esté disponible
+        if (typeof window === 'undefined') {
+            console.error('❌ Window no disponible');
+            return;
         }
         
-        console.error('❌ No se pudo inicializar Supabase en display después de', maxAttempts, 'intentos');
+        if (!window.supabase) {
+            console.error('❌ window.supabase no disponible');
+            return;
+        }
+        
+        if (!window.supabase.createClient) {
+            console.error('❌ window.supabase.createClient no disponible');
+            return;
+        }
+        
+        try {
+            console.log('🔄 Creando cliente para display...');
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            if (supabase) {
+                console.log('✅ Cliente creado exitosamente para display');
+                this.supabaseReady = true;
+                return;
+            } else {
+                console.error('❌ Cliente es null');
+            }
+        } catch (error) {
+            console.error('❌ Error creando cliente:', error);
+            supabase = null;
+        }
+        
+        console.error('❌ No se pudo inicializar Supabase en display');
     }
 
     checkSupabaseReady() {
@@ -71,24 +89,13 @@ class MenuDisplay {
                 throw error;
             }
             
-            // Procesar repeticiones
-            const activeImages = data || [];
-            this.images = [];
-            
-            activeImages.forEach(img => {
-                const repeat = img.repeat || 1;
-                // Crear múltiples instancias de la imagen según su repetición
-                for (let i = 0; i < repeat; i++) {
-                    this.images.push({
-                        ...img,
-                        duration: img.duration || 5, // Valor por defecto si no tiene duración
-                        uniqueId: `${img.id}_${i}` // ID único para cada repetición
-                    });
-                }
-            });
-            
-            // Mezclar las imágenes para distribuir las repeticiones
-            this.shuffleImages();
+            // Guardar las imágenes originales sin duplicar
+            this.images = (data || []).map(img => ({
+                ...img,
+                duration: img.duration || 5,
+                repeat: img.repeat || 1,
+                remainingRepeats: img.repeat || 1 // Contador de repeticiones restantes
+            }));
             
             // Si no hay imágenes, crear una imagen de placeholder
             if (this.images.length === 0) {
@@ -172,8 +179,9 @@ class MenuDisplay {
     }
 
     scheduleNextTransition() {
-        const currentImage = this.images[this.currentIndex];
-        const duration = currentImage.duration * 1000; // Convertir a milisegundos
+        if (!this.currentImage) return;
+        
+        const duration = this.currentImage.duration * 1000; // Convertir a milisegundos
         
         this.transitionTimeout = setTimeout(() => {
             this.nextSlide();
@@ -181,13 +189,14 @@ class MenuDisplay {
     }
 
     showCurrentSlide() {
-        const currentImage = this.images[this.currentIndex];
+        // Seleccionar la primera imagen de forma aleatoria
+        this.currentImage = this.selectRandomImage();
         const activeSlide = document.getElementById(this.currentSlideId);
         const imageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
         
         if (imageElement) {
-            imageElement.src = currentImage.src;
-            imageElement.alt = currentImage.title;
+            imageElement.src = this.currentImage.src;
+            imageElement.alt = this.currentImage.title;
         }
         
         // Asegurar que solo el slide actual esté activo
@@ -199,20 +208,19 @@ class MenuDisplay {
     nextSlide() {
         if (this.images.length <= 1) return;
         
-        // Cambiar al siguiente índice
-        this.currentIndex = (this.currentIndex + 1) % this.images.length;
+        // Seleccionar la siguiente imagen de forma aleatoria considerando repeticiones
+        this.currentImage = this.selectRandomImage();
         
         // Alternar entre slide1 y slide2
         this.currentSlideId = this.currentSlideId === 'slide1' ? 'slide2' : 'slide1';
         
         // Preparar la nueva imagen en el slide que va a ser activo
-        const nextImage = this.images[this.currentIndex];
         const nextSlide = document.getElementById(this.currentSlideId);
         const nextImageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
         
         if (nextImageElement) {
-            nextImageElement.src = nextImage.src;
-            nextImageElement.alt = nextImage.title;
+            nextImageElement.src = this.currentImage.src;
+            nextImageElement.alt = this.currentImage.title;
         }
         
         // Hacer la transición
@@ -222,6 +230,28 @@ class MenuDisplay {
         
         // Programar la siguiente transición
         this.scheduleNextTransition();
+    }
+
+    selectRandomImage() {
+        // Crear un array de imágenes disponibles para selección
+        const availableImages = this.images.filter(img => img.remainingRepeats > 0);
+        
+        if (availableImages.length === 0) {
+            // Si no hay imágenes disponibles, resetear todas las repeticiones
+            this.images.forEach(img => {
+                img.remainingRepeats = img.repeat;
+            });
+            return this.selectRandomImage(); // Llamada recursiva
+        }
+        
+        // Seleccionar una imagen aleatoria de las disponibles
+        const randomIndex = Math.floor(Math.random() * availableImages.length);
+        const selectedImage = availableImages[randomIndex];
+        
+        // Decrementar el contador de repeticiones
+        selectedImage.remainingRepeats--;
+        
+        return selectedImage;
     }
 
     previousSlide() {

@@ -3,40 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Menú Digital - Herbalife</title>
+    <title>Herbalife - Menú Digital</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <h1>🌿 Gestión de Menú Digital - Herbalife</h1>
-            <div class="header-actions">
-                <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
-                    📺 Ver Pantalla
-                </button>
-                <button class="btn btn-secondary" onclick="exportData()">
-                    📁 Exportar Datos
-                </button>
-            </div>
+            <h1>🌿 Herbalife</h1>
+            <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
+                📺 Pantalla
+            </button>
         </header>
 
         <div class="main-content">
             <div class="sidebar">
-                <h3>⚙️ Configuración</h3>
-                <div class="config-section">
-                    <label for="categoryFilter">Filtrar por categoría:</label>
-                    <select id="categoryFilter" onchange="filterImages()">
-                        <option value="all">Todas las categorías</option>
-                        <option value="bebidas">Bebidas</option>
-                        <option value="productos">Productos</option>
-                        <option value="ofertas">Ofertas</option>
-                        <option value="informacion">Información</option>
-                    </select>
-                </div>
-
                 <div class="upload-section">
-                    <h3>📤 Subir Nueva Imagen</h3>
+                    <h3>📤 Subir Imagen</h3>
                     <input type="file" id="imageInput" accept="image/*" multiple>
                     <select id="imageCategory">
                         <option value="bebidas">Bebidas</option>
@@ -44,59 +27,43 @@
                         <option value="ofertas">Ofertas</option>
                         <option value="informacion">Información</option>
                     </select>
-                    <input type="text" id="imageTitle" placeholder="Título de la imagen">
+                    <input type="text" id="imageTitle" placeholder="Título">
                     <div class="duration-input">
-                        <label for="imageDuration">Duración (segundos):</label>
+                        <label>Duración:</label>
                         <input type="number" id="imageDuration" min="1" max="60" value="5">
                     </div>
-                    <div class="duration-input">
-                        <label for="imageRepeat">Repetir en slideshow:</label>
+                    <div class="repeat-input">
+                        <label>Repetir:</label>
                         <input type="number" id="imageRepeat" min="1" max="10" value="1">
-                        <small>Veces que aparece la imagen</small>
                     </div>
-                    <button class="btn btn-primary" onclick="uploadImages()">Subir Imágenes</button>
+                    <button class="btn btn-primary" onclick="uploadImages()">
+                        Subir
+                    </button>
                 </div>
             </div>
 
             <div class="content">
-                <div class="stats">
+                <div class="stats-grid">
                     <div class="stat-card">
-                        <h3 id="totalImages">0</h3>
-                        <p>Total de Imágenes</p>
+                        <h3>Total</h3>
+                        <p class="stat-number" id="totalImages">0</p>
                     </div>
                     <div class="stat-card">
-                        <h3 id="activeImages">0</h3>
-                        <p>Imágenes Activas</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="avgDuration">5s</h3>
-                        <p>Duración Promedio</p>
+                        <h3>Activas</h3>
+                        <p class="stat-number" id="activeImages">0</p>
                     </div>
                 </div>
 
                 <div class="images-grid" id="imagesGrid">
-                    <!-- Las imágenes se cargarán aquí dinámicamente -->
+                    <div class="no-images">
+                        <h3>📷 Sin imágenes</h3>
+                        <p>Sube tu primera imagen</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="supabase-config.js"></script>
-    <script>
-        // Inicializar Supabase cuando todo esté listo
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
-                    if (!supabase) {
-                        supabase = createSupabaseClient();
-                        if (supabase) {
-                            console.log('✅ Supabase inicializado desde HTML');
-                        }
-                    }
-                }
-            }, 500);
-        });
-    </script>
     <script src="script.js"></script>
 </body>
 </html> 
