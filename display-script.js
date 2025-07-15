@@ -23,24 +23,32 @@ class MenuDisplay {
 
     async waitForSupabase() {
         // Intentar inicializar Supabase
-        if (!supabase) {
-            const maxAttempts = 10;
-            let attempts = 0;
+        const maxAttempts = 20;
+        let attempts = 0;
+        
+        while (attempts < maxAttempts && !supabase) {
+            // Esperar un poco para que la librería de Supabase se cargue
+            await new Promise(resolve => setTimeout(resolve, 250));
             
-            while (attempts < maxAttempts && !supabase) {
-                if (initSupabase()) {
+            if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+                try {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     this.supabaseReady = true;
+                    console.log('✅ Supabase inicializado correctamente en display');
                     return;
+                } catch (error) {
+                    console.error('Error inicializando Supabase en display:', error);
                 }
-                attempts++;
-                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            if (!supabase) {
-                console.error('❌ No se pudo inicializar Supabase en display');
-                return;
-            }
+            attempts++;
         }
+        
+        if (!supabase) {
+            console.error('❌ No se pudo inicializar Supabase en display después de', maxAttempts, 'intentos');
+            return;
+        }
+        
         this.supabaseReady = true;
     }
 
@@ -360,7 +368,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // Función para recargar datos desde la consola del navegador
 async function reloadMenuData() {
     if (window.menuDisplay) {
-        await window.menuDisplay.restart();
+        try {
+            await window.menuDisplay.restart();
+        } catch (error) {
+            console.error('Error recargando datos:', error);
+        }
     }
 }
 

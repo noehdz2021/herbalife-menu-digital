@@ -5,16 +5,31 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Variable global para el cliente de Supabase
 let supabase = null;
 
-// Función para inicializar Supabase cuando la librería esté lista
+// Función para inicializar Supabase
 function initSupabase() {
-    if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase inicializado correctamente');
-        return true;
-    } else {
-        console.error('❌ Error: Librería de Supabase no disponible');
+    try {
+        if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase inicializado correctamente');
+            return true;
+        } else {
+            console.error('❌ Error: Librería de Supabase no disponible');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error inicializando Supabase:', error);
         return false;
     }
+}
+
+// Intentar inicializar inmediatamente si la librería ya está disponible
+if (typeof window !== 'undefined' && window.supabase) {
+    initSupabase();
+} else {
+    // Si no está disponible, intentar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initSupabase, 100);
+    });
 }
 
 // Función helper para generar URLs de Storage
