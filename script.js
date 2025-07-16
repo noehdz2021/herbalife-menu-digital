@@ -1,7 +1,4 @@
-// Versión minimalista del script
-const SUPABASE_URL = 'https://tmfwggfraxvpbjnpttnx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtZndnZ2ZyYXh2cGJqbnB0dG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MTI0NDIsImV4cCI6MjA2ODE4ODQ0Mn0.Roojl7R6KXicFlSt17Bqp5Sa_nIpvwsQxdlZ6VtovSc';
-
+// Versión minimalista del script con autenticación
 let supabase = null;
 let images = [];
 
@@ -10,11 +7,22 @@ async function initSupabase() {
     if (!window.supabase?.createClient) return false;
     
     try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
         return !!supabase;
     } catch (error) {
         console.error('Error inicializando Supabase:', error);
         return false;
+    }
+}
+
+// Mostrar información del usuario
+function displayUserInfo() {
+    const userInfo = document.getElementById('userInfo');
+    if (userInfo && window.authManager) {
+        const user = window.authManager.getCurrentUser();
+        if (user) {
+            userInfo.textContent = `👤 ${user.name}`;
+        }
     }
 }
 
@@ -50,14 +58,14 @@ async function uploadImages() {
                 
                 // Subir archivo
                 const { error: storageError } = await supabase.storage
-                    .from('menu-images')
+                    .from(CONFIG.STORAGE_BUCKET)
                     .upload(fileName, file);
                 
                 if (storageError) throw storageError;
                 
                 // Obtener URL
                 const { data: urlData } = supabase.storage
-                    .from('menu-images')
+                    .from(CONFIG.STORAGE_BUCKET)
                     .getPublicUrl(fileName);
                 
                 // Guardar en BD
@@ -209,7 +217,7 @@ async function deleteImage(id) {
         const image = images.find(img => img.id === id);
         if (image) {
             const fileName = image.src.split('/').pop();
-            await supabase.storage.from('menu-images').remove([fileName]);
+            await supabase.storage.from(CONFIG.STORAGE_BUCKET).remove([fileName]);
         }
         
         await supabase.from('menu_images').delete().eq('id', id);
@@ -223,13 +231,22 @@ async function deleteImage(id) {
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', async function() {
+    // Esperar a que se cargue la autenticación
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const success = await initSupabase();
-    if (success) {
-        await loadImages();
+    // Verificar autenticación
+    if (window.authManager && window.authManager.isAuthenticated()) {
+        displayUserInfo();
+        
+        const success = await initSupabase();
+        if (success) {
+            await loadImages();
+        } else {
+            renderImages();
+            updateStats();
+        }
     } else {
-        renderImages();
-        updateStats();
+        // Si no está autenticado, redirigir al login
+        window.location.href = 'login.html';
     }
 }); 

@@ -10,10 +10,18 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>🌿 Herbalife</h1>
-            <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
-                📺 Pantalla
-            </button>
+            <div class="header-left">
+                <h1>🌿 Herbalife</h1>
+                <span class="user-info" id="userInfo"></span>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
+                    📺 Pantalla
+                </button>
+                <button class="btn btn-secondary" onclick="logout()">
+                    🚪 Cerrar Sesión
+                </button>
+            </div>
         </header>
 
         <div class="main-content">
@@ -64,6 +72,8 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 

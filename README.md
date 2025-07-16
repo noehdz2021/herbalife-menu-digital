@@ -1,12 +1,31 @@
 # 🌿 Herbalife - Menú Digital
 
-Sistema minimalista para gestionar y mostrar imágenes en pantallas digitales para cafés Herbalife.
+Sistema minimalista para gestionar y mostrar imágenes en pantallas digitales para cafés Herbalife con sistema de autenticación completo.
+
+## 🔐 Sistema de Autenticación
+
+El sistema incluye un completo sistema de login para administradores:
+
+### Credenciales por defecto:
+- **Email:** `admin@herbalife.com`
+- **Contraseña:** `admin123`
+
+### Características del sistema de autenticación:
+- ✅ Login seguro con validación de credenciales
+- ✅ Sesiones persistentes (24 horas)
+- ✅ Protección de rutas administrativas
+- ✅ Logout automático
+- ✅ Gestión de sesiones en base de datos
+- ✅ Interfaz minimalista y responsive
 
 ## 📁 Estructura del Proyecto
 
 ```
 remote-herbalife/
-├── index.html              # Interfaz de administración (minimalista)
+├── login.html              # Página de login
+├── auth.js                 # Sistema de autenticación
+├── config.js               # Configuración centralizada
+├── index.html              # Interfaz de administración (protegida)
 ├── script.js               # Lógica de administración
 ├── display.html            # Pantalla de visualización
 ├── display-script.js       # Lógica de visualización con repetición aleatoria
@@ -16,7 +35,7 @@ remote-herbalife/
 ├── INSTRUCCIONES-CONFIGURACION.md  # Guía de configuración
 ├── database-setup.sql      # Script de configuración de base de datos
 ├── storage-setup.sql       # Script de configuración de storage
-└── supabase-setup.sql      # Script completo de configuración
+└── supabase-setup.sql      # Script completo de configuración con autenticación
 ```
 
 ## 🎨 Características
@@ -29,6 +48,7 @@ remote-herbalife/
 - **Amarillo:** `#FFD700`
 
 ### **Funcionalidades:**
+- ✅ **Sistema de autenticación** completo y seguro
 - ✅ **Subida de imágenes** con drag & drop
 - ✅ **Categorización:** Bebidas, Productos, Ofertas, Información
 - ✅ **Control de duración:** 1-60 segundos por imagen
@@ -47,22 +67,31 @@ Sigue las instrucciones en `INSTRUCCIONES-CONFIGURACION.md` para:
 - Obtener credenciales
 
 ### 2. Actualizar Credenciales
-Edita `script.js` y `display-script.js` con tus credenciales de Supabase:
+Edita `config.js` con tus credenciales de Supabase:
 ```javascript
-const SUPABASE_URL = 'tu-url-de-supabase';
-const SUPABASE_ANON_KEY = 'tu-anon-key';
+const CONFIG = {
+    SUPABASE_URL: 'tu-url-de-supabase',
+    SUPABASE_ANON_KEY: 'tu-anon-key',
+    // ... resto de configuración
+};
 ```
 
 ### 3. Ejecutar
-Abre `index.html` en tu navegador para acceder al panel de administración.
+Abre `login.html` en tu navegador para acceder al sistema de autenticación.
 
 ## 📖 Uso
+
+### **Sistema de Login (`login.html`):**
+1. **Acceder:** Usa las credenciales por defecto o las configuradas
+2. **Sesión:** La sesión se mantiene activa por 24 horas
+3. **Seguridad:** Todas las rutas administrativas están protegidas
 
 ### **Panel de Administración (`index.html`):**
 1. **Subir imágenes:** Selecciona archivos, categoría, título, duración y repetición
 2. **Editar configuración:** Usa los controles inline para ajustar duración y repetición
 3. **Ver pantalla:** Haz clic en "📺 Pantalla" para abrir la visualización
 4. **Eliminar:** Usa el botón 🗑️ para eliminar imágenes
+5. **Cerrar sesión:** Usa el botón "🚪 Cerrar Sesión" para salir
 
 ### **Pantalla de Visualización (`display.html`):**
 - **Pantalla completa:** Las imágenes cubren toda la pantalla
