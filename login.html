@@ -119,6 +119,10 @@
             <div class="login-header">
                 <h1>🌿 Herbalife</h1>
                 <p>Menú Digital - Panel de Administración</p>
+                <div id="setupMessage" style="display: none; background: #fff3cd; color: #856404; padding: 0.75rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem;">
+                    <strong>⚠️ Configuración requerida:</strong> Las tablas de autenticación no están configuradas. 
+                    Ejecuta los scripts SQL en Supabase antes de continuar.
+                </div>
             </div>
             
             <div class="error-message" id="errorMessage"></div>
@@ -145,5 +149,12 @@
 
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script>
+        // Verificar si se requiere configuración
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('setup') === 'required') {
+            document.getElementById('setupMessage').style.display = 'block';
+        }
+    </script>
 </body>
 </html> 

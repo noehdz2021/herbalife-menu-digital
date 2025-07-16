@@ -139,7 +139,7 @@ class AuthManager {
         
         if (this.currentUser && isLoginPage) {
             // Usuario autenticado en página de login, redirigir al admin
-            window.location.href = 'index.html';
+            window.location.href = 'admin.html';
         } else if (!this.currentUser && !isLoginPage) {
             // Usuario no autenticado en página protegida, redirigir al login
             window.location.href = 'login.html';
@@ -199,7 +199,7 @@ if (document.getElementById('loginForm')) {
                 successMessage.style.display = 'block';
                 
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'admin.html';
                 }, 1000);
             }
         } catch (error) {

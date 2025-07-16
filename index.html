@@ -4,76 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herbalife - Menú Digital</title>
-    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        .loading-container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #00A651;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            color: #00A651;
+            margin-bottom: 0.5rem;
+        }
+        
+        p {
+            color: #666;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="header-left">
-                <h1>🌿 Herbalife</h1>
-                <span class="user-info" id="userInfo"></span>
-            </div>
-            <div class="header-right">
-                <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
-                    📺 Pantalla
-                </button>
-                <button class="btn btn-secondary" onclick="logout()">
-                    🚪 Cerrar Sesión
-                </button>
-            </div>
-        </header>
-
-        <div class="main-content">
-            <div class="sidebar">
-                <div class="upload-section">
-                    <h3>📤 Subir Imagen</h3>
-                    <input type="file" id="imageInput" accept="image/*" multiple>
-                    <select id="imageCategory">
-                        <option value="bebidas">Bebidas</option>
-                        <option value="productos">Productos</option>
-                        <option value="ofertas">Ofertas</option>
-                        <option value="informacion">Información</option>
-                    </select>
-                    <input type="text" id="imageTitle" placeholder="Título">
-                    <div class="duration-input">
-                        <label>Duración:</label>
-                        <input type="number" id="imageDuration" min="1" max="60" value="5">
-                    </div>
-                    <div class="repeat-input">
-                        <label>Repetir:</label>
-                        <input type="number" id="imageRepeat" min="1" max="10" value="1">
-                    </div>
-                    <button class="btn btn-primary" onclick="uploadImages()">
-                        Subir
-                    </button>
-                </div>
-            </div>
-
-            <div class="content">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total</h3>
-                        <p class="stat-number" id="totalImages">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Activas</h3>
-                        <p class="stat-number" id="activeImages">0</p>
-                    </div>
-                </div>
-
-                <div class="images-grid" id="imagesGrid">
-                    <div class="no-images">
-                        <h3>📷 Sin imágenes</h3>
-                        <p>Sube tu primera imagen</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h1>🌿 Herbalife</h1>
+        <p>Verificando autenticación...</p>
     </div>
 
     <script src="config.js"></script>
     <script src="auth.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Esperar a que se cargue la autenticación
+        setTimeout(async () => {
+            try {
+                // Verificar si las tablas de autenticación existen
+                const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+                
+                // Intentar verificar si existe la tabla admin_users
+                const { data, error } = await supabase
+                    .from('admin_users')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    // Si hay error, probablemente las tablas no existen
+                    console.log('Tablas de autenticación no configuradas, redirigiendo a configuración...');
+                    window.location.href = 'login.html?setup=required';
+                    return;
+                }
+                
+                // Si las tablas existen, verificar autenticación
+                if (window.authManager && window.authManager.isAuthenticated()) {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'login.html';
+                }
+                
+            } catch (error) {
+                console.error('Error verificando configuración:', error);
+                window.location.href = 'login.html?setup=required';
+            }
+        }, 2000);
+    </script>
 </body>
 </html> 
