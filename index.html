@@ -70,10 +70,11 @@
                 // Intentar verificar si existe la tabla admin_users
                 const { data, error } = await supabase
                     .from('admin_users')
-                    .select('count')
+                    .select('id')
                     .limit(1);
                 
                 if (error) {
+                    console.error('Error verificando admin_users:', error);
                     // Si hay error, probablemente las tablas no existen
                     console.log('Tablas de autenticación no configuradas, redirigiendo a configuración...');
                     window.location.href = 'login.html?setup=required';
