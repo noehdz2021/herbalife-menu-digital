@@ -1,7 +1,5 @@
-// Inicializar Supabase usando configuración centralizada
-const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-// Hacer disponible globalmente
-window.supabaseClient = supabase;
+// Usar la instancia global de Supabase
+const supabase = window.supabaseClient;
 
 // Clase para manejar la autenticación
 class AuthManager {

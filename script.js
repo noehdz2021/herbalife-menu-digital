@@ -1,23 +1,9 @@
 // Versión minimalista del script con autenticación
 let images = [];
 
-// Inicializar Supabase
-async function initSupabase() {
-    if (!window.supabase?.createClient) return false;
-    
-    try {
-        // Usar la instancia global de supabase si existe
-        if (window.supabaseClient) {
-            return true;
-        }
-        
-        // Crear nueva instancia si no existe
-        window.supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        return !!window.supabaseClient;
-    } catch (error) {
-        console.error('Error inicializando Supabase:', error);
-        return false;
-    }
+// Verificar Supabase
+async function checkSupabase() {
+    return !!window.supabaseClient;
 }
 
 // Mostrar información del usuario
@@ -243,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (window.authManager && window.authManager.isAuthenticated()) {
         displayUserInfo();
         
-        const success = await initSupabase();
+        const success = await checkSupabase();
         if (success) {
             await loadImages();
         } else {
