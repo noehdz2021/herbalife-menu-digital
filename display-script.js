@@ -13,6 +13,8 @@ class MenuDisplay {
         this.isActive = true;
         this.currentSlideId = 'slide1'; // Rastrear cuál slide está activo
         this.supabaseReady = false;
+        this.realtimeChannel = null; // Canal de tiempo real
+        this.lastUpdateTime = 0; // Para evitar actualizaciones duplicadas
         this.init();
     }
 
@@ -27,6 +29,9 @@ class MenuDisplay {
         this.setupEventListeners();
         this.setupRealtimeSubscription();
         this.hideLoadingScreen();
+        
+        // Configurar actualización periódica como respaldo
+        this.setupPeriodicRefresh();
     }
 
     async waitForSupabase() {
@@ -78,6 +83,8 @@ class MenuDisplay {
         }
         
         try {
+            console.log('🔄 Cargando datos del menú...');
+            
             // Cargar imágenes desde Supabase
             const { data, error } = await supabase
                 .from('menu_images')
@@ -96,6 +103,8 @@ class MenuDisplay {
                 repeat: img.repeat || 1,
                 remainingRepeats: img.repeat || 1 // Contador de repeticiones restantes
             }));
+            
+            console.log(`✅ Cargadas ${this.images.length} imágenes`);
             
             // Si no hay imágenes, crear una imagen de placeholder
             if (this.images.length === 0) {
@@ -129,21 +138,104 @@ class MenuDisplay {
     }
 
     setupRealtimeSubscription() {
-        if (!this.checkSupabaseReady()) return;
+        if (!this.checkSupabaseReady()) {
+            console.log('⚠️ Supabase no está listo para suscripción en tiempo real');
+            this.updateConnectionStatus('disconnected', 'Sin conexión');
+            return;
+        }
         
-        // Suscribirse a cambios en tiempo real
-        supabase
-            .channel('menu_images_display')
-            .on('postgres_changes', 
-                { event: '*', schema: 'public', table: 'menu_images' }, 
-                (payload) => {
-                    console.log('Cambio detectado en display:', payload);
-                    this.loadData().then(() => {
+        try {
+            console.log('🔄 Configurando suscripción en tiempo real...');
+            this.updateConnectionStatus('connecting', 'Conectando...');
+            
+            // Crear canal único para este display
+            const channelId = `menu_display_${Date.now()}`;
+            this.realtimeChannel = supabase.channel(channelId);
+            
+            // Suscribirse a cambios en tiempo real
+            this.realtimeChannel
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'menu_images' }, 
+                    (payload) => {
+                        console.log('🔄 Cambio detectado en tiempo real:', payload);
+                        this.handleRealtimeChange(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('📡 Estado de suscripción:', status);
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Suscripción en tiempo real activa');
+                        this.updateConnectionStatus('connected', 'Conectado');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ Error en canal de tiempo real');
+                        this.updateConnectionStatus('disconnected', 'Error de conexión');
+                        // Reintentar después de 5 segundos
+                        setTimeout(() => this.setupRealtimeSubscription(), 5000);
+                    } else if (status === 'TIMED_OUT') {
+                        console.error('❌ Timeout en canal de tiempo real');
+                        this.updateConnectionStatus('disconnected', 'Timeout');
+                        // Reintentar después de 5 segundos
+                        setTimeout(() => this.setupRealtimeSubscription(), 5000);
+                    }
+                });
+                
+        } catch (error) {
+            console.error('❌ Error configurando suscripción en tiempo real:', error);
+            this.updateConnectionStatus('disconnected', 'Error');
+        }
+    }
+
+    updateConnectionStatus(status, text) {
+        const indicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        
+        if (indicator && statusText) {
+            indicator.className = `status-indicator ${status}`;
+            statusText.textContent = text;
+        }
+    }
+
+    async handleRealtimeChange(payload) {
+        const now = Date.now();
+        
+        // Evitar actualizaciones duplicadas en un corto período
+        if (now - this.lastUpdateTime < 1000) {
+            console.log('⏭️ Actualización ignorada (muy reciente)');
+            return;
+        }
+        
+        this.lastUpdateTime = now;
+        
+        console.log('🔄 Procesando cambio en tiempo real:', payload.eventType);
+        
+        // Recargar datos y reiniciar el slideshow
+        try {
+            await this.loadData();
+            this.restart();
+            console.log('✅ Display actualizado desde tiempo real');
+        } catch (error) {
+            console.error('❌ Error actualizando display:', error);
+        }
+    }
+
+    setupPeriodicRefresh() {
+        // Actualización periódica cada 30 segundos como respaldo
+        setInterval(async () => {
+            if (this.checkSupabaseReady()) {
+                console.log('🔄 Actualización periódica del display...');
+                try {
+                    await this.loadData();
+                    // Solo reiniciar si hay cambios significativos
+                    const currentCount = this.images.length;
+                    if (currentCount !== this.lastImageCount) {
                         this.restart();
-                    });
+                        this.lastImageCount = currentCount;
+                    }
+                } catch (error) {
+                    console.error('❌ Error en actualización periódica:', error);
                 }
-            )
-            .subscribe();
+            }
+        }, 30000); // 30 segundos
     }
 
     setupClock() {

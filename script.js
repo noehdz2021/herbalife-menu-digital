@@ -42,10 +42,14 @@ async function uploadImages() {
     }
 
     try {
+        console.log('🔄 Iniciando subida de imágenes...');
+        
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (file.type.startsWith('image/')) {
                 const fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
+                
+                console.log(`📤 Subiendo archivo: ${fileName}`);
                 
                 // Subir archivo
                 const { error: storageError } = await window.supabaseClient.storage
@@ -69,6 +73,7 @@ async function uploadImages() {
                     active: true
                 };
                 
+                console.log('💾 Guardando en base de datos:', imageData.title);
                 await window.supabaseClient.from('menu_images').insert([imageData]);
             }
         }
@@ -77,12 +82,13 @@ async function uploadImages() {
         fileInput.value = '';
         document.getElementById('imageTitle').value = '';
         
+        console.log('✅ Imágenes subidas exitosamente');
         alert('✅ Imágenes subidas');
         await loadImages();
         
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error al subir imágenes');
+        console.error('❌ Error subiendo imágenes:', error);
+        alert('Error al subir imágenes: ' + error.message);
     }
 }
 
@@ -205,18 +211,66 @@ async function deleteImage(id) {
     if (!window.supabaseClient || !confirm('¿Eliminar imagen?')) return;
 
     try {
+        console.log('🗑️ Eliminando imagen ID:', id);
+        
         const image = images.find(img => img.id === id);
         if (image) {
+            console.log('🗑️ Eliminando archivo de storage:', image.src);
             const fileName = image.src.split('/').pop();
             await window.supabaseClient.storage.from(CONFIG.STORAGE_BUCKET).remove([fileName]);
         }
         
+        console.log('🗑️ Eliminando registro de base de datos');
         await window.supabaseClient.from('menu_images').delete().eq('id', id);
+        
+        console.log('✅ Imagen eliminada exitosamente');
         await loadImages();
         
     } catch (error) {
-        console.error('Error eliminando imagen:', error);
-        alert('Error al eliminar');
+        console.error('❌ Error eliminando imagen:', error);
+        alert('Error al eliminar: ' + error.message);
+    }
+}
+
+// Forzar actualización del display
+async function forceDisplayRefresh() {
+    if (!window.supabaseClient) {
+        alert('Error: Base de datos no disponible');
+        return;
+    }
+    
+    try {
+        console.log('🔄 Forzando actualización del display...');
+        
+        // Crear un registro temporal para activar la suscripción en tiempo real
+        const tempData = {
+            title: 'Actualización forzada',
+            category: 'sistema',
+            src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8L3N2Zz4=',
+            duration: 1,
+            repeat: 1,
+            active: false // No se mostrará en el display
+        };
+        
+        // Insertar y eliminar inmediatamente para activar la suscripción
+        const { data: inserted } = await window.supabaseClient
+            .from('menu_images')
+            .insert([tempData])
+            .select();
+        
+        if (inserted && inserted[0]) {
+            await window.supabaseClient
+                .from('menu_images')
+                .delete()
+                .eq('id', inserted[0].id);
+        }
+        
+        console.log('✅ Señal de actualización enviada al display');
+        alert('✅ Display actualizado');
+        
+    } catch (error) {
+        console.error('❌ Error forzando actualización:', error);
+        alert('Error forzando actualización: ' + error.message);
     }
 }
 
