@@ -1,5 +1,4 @@
 // Versión minimalista del script con autenticación
-let supabase = null;
 let images = [];
 
 // Inicializar Supabase
@@ -7,8 +6,14 @@ async function initSupabase() {
     if (!window.supabase?.createClient) return false;
     
     try {
-        supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        return !!supabase;
+        // Usar la instancia global de supabase si existe
+        if (window.supabaseClient) {
+            return true;
+        }
+        
+        // Crear nueva instancia si no existe
+        window.supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        return !!window.supabaseClient;
     } catch (error) {
         console.error('Error inicializando Supabase:', error);
         return false;
@@ -28,7 +33,7 @@ function displayUserInfo() {
 
 // Subir imágenes
 async function uploadImages() {
-    if (!supabase) {
+    if (!window.supabaseClient) {
         alert('Error: Base de datos no disponible');
         return;
     }
@@ -57,14 +62,14 @@ async function uploadImages() {
                 const fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
                 
                 // Subir archivo
-                const { error: storageError } = await supabase.storage
+                const { error: storageError } = await window.supabaseClient.storage
                     .from(CONFIG.STORAGE_BUCKET)
                     .upload(fileName, file);
                 
                 if (storageError) throw storageError;
                 
                 // Obtener URL
-                const { data: urlData } = supabase.storage
+                const { data: urlData } = window.supabaseClient.storage
                     .from(CONFIG.STORAGE_BUCKET)
                     .getPublicUrl(fileName);
                 
@@ -78,7 +83,7 @@ async function uploadImages() {
                     active: true
                 };
                 
-                await supabase.from('menu_images').insert([imageData]);
+                await window.supabaseClient.from('menu_images').insert([imageData]);
             }
         }
 
@@ -97,10 +102,10 @@ async function uploadImages() {
 
 // Cargar imágenes
 async function loadImages() {
-    if (!supabase) return;
+    if (!window.supabaseClient) return;
 
     try {
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('menu_images')
             .select('*')
             .order('created_at', { ascending: false });
@@ -175,10 +180,10 @@ function updateStats() {
 
 // Actualizar duración
 async function updateDuration(id, duration) {
-    if (!supabase) return;
+    if (!window.supabaseClient) return;
     
     try {
-        await supabase
+        await window.supabaseClient
             .from('menu_images')
             .update({ duration: parseInt(duration) })
             .eq('id', id);
@@ -193,10 +198,10 @@ async function updateDuration(id, duration) {
 
 // Actualizar repetición
 async function updateRepeat(id, repeat) {
-    if (!supabase) return;
+    if (!window.supabaseClient) return;
     
     try {
-        await supabase
+        await window.supabaseClient
             .from('menu_images')
             .update({ repeat: parseInt(repeat) })
             .eq('id', id);
@@ -211,16 +216,16 @@ async function updateRepeat(id, repeat) {
 
 // Eliminar imagen
 async function deleteImage(id) {
-    if (!supabase || !confirm('¿Eliminar imagen?')) return;
+    if (!window.supabaseClient || !confirm('¿Eliminar imagen?')) return;
 
     try {
         const image = images.find(img => img.id === id);
         if (image) {
             const fileName = image.src.split('/').pop();
-            await supabase.storage.from(CONFIG.STORAGE_BUCKET).remove([fileName]);
+            await window.supabaseClient.storage.from(CONFIG.STORAGE_BUCKET).remove([fileName]);
         }
         
-        await supabase.from('menu_images').delete().eq('id', id);
+        await window.supabaseClient.from('menu_images').delete().eq('id', id);
         await loadImages();
         
     } catch (error) {
