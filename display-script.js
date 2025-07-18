@@ -34,6 +34,48 @@ class MenuDisplay {
         this.setupPeriodicRefresh();
     }
 
+    // Función helper para crear elementos de media
+    createMediaElement(imageData, container) {
+        if (imageData.file_type === 'video') {
+            // Crear elemento de video
+            const video = document.createElement('video');
+            video.src = imageData.src;
+            video.alt = imageData.title;
+            video.autoplay = true;
+            video.muted = true;
+            video.loop = true;
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'cover';
+            
+            // Manejar el final del video
+            video.addEventListener('ended', () => {
+                this.nextSlide();
+            });
+            
+            container.appendChild(video);
+        } else {
+            // Crear elemento de imagen
+            const img = document.createElement('img');
+            img.src = imageData.src;
+            img.alt = imageData.title;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            
+            // Detectar automáticamente el tipo de contenido
+            if (imageData.category === 'informacion' || imageData.title.toLowerCase().includes('info')) {
+                img.className = 'info-content';
+                img.style.objectFit = 'contain';
+                img.style.background = '#f8f9fa';
+            } else {
+                img.className = 'product-image';
+                img.style.objectFit = 'cover';
+            }
+            
+            container.appendChild(img);
+        }
+    }
+
     async waitForSupabase() {
         console.log('🔄 Iniciando proceso de conexión con Supabase en display...');
         
@@ -290,35 +332,8 @@ class MenuDisplay {
             // Limpiar el contenido anterior
             contentElement.innerHTML = '';
             
-            if (this.currentImage.file_type === 'video') {
-                // Crear elemento de video
-                const video = document.createElement('video');
-                video.src = this.currentImage.src;
-                video.alt = this.currentImage.title;
-                video.autoplay = true;
-                video.muted = true;
-                video.loop = true;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.objectFit = 'cover';
-                
-                // Manejar el final del video
-                video.addEventListener('ended', () => {
-                    this.nextSlide();
-                });
-                
-                contentElement.appendChild(video);
-            } else {
-                // Crear elemento de imagen
-                const img = document.createElement('img');
-                img.src = this.currentImage.src;
-                img.alt = this.currentImage.title;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                
-                contentElement.appendChild(img);
-            }
+            // Crear el elemento de media usando la función helper
+            this.createMediaElement(this.currentImage, contentElement);
         }
         
         // Asegurar que solo el slide actual esté activo
@@ -344,35 +359,8 @@ class MenuDisplay {
             // Limpiar el contenido anterior
             nextContentElement.innerHTML = '';
             
-            if (this.currentImage.file_type === 'video') {
-                // Crear elemento de video
-                const video = document.createElement('video');
-                video.src = this.currentImage.src;
-                video.alt = this.currentImage.title;
-                video.autoplay = true;
-                video.muted = true;
-                video.loop = true;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.objectFit = 'cover';
-                
-                // Manejar el final del video
-                video.addEventListener('ended', () => {
-                    this.nextSlide();
-                });
-                
-                nextContentElement.appendChild(video);
-            } else {
-                // Crear elemento de imagen
-                const img = document.createElement('img');
-                img.src = this.currentImage.src;
-                img.alt = this.currentImage.title;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                
-                nextContentElement.appendChild(img);
-            }
+            // Crear el elemento de media usando la función helper
+            this.createMediaElement(this.currentImage, nextContentElement);
         }
         
         // Hacer la transición
@@ -426,35 +414,8 @@ class MenuDisplay {
             // Limpiar el contenido anterior
             prevContentElement.innerHTML = '';
             
-            if (prevImage.file_type === 'video') {
-                // Crear elemento de video
-                const video = document.createElement('video');
-                video.src = prevImage.src;
-                video.alt = prevImage.title;
-                video.autoplay = true;
-                video.muted = true;
-                video.loop = true;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.objectFit = 'cover';
-                
-                // Manejar el final del video
-                video.addEventListener('ended', () => {
-                    this.nextSlide();
-                });
-                
-                prevContentElement.appendChild(video);
-            } else {
-                // Crear elemento de imagen
-                const img = document.createElement('img');
-                img.src = prevImage.src;
-                img.alt = prevImage.title;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                
-                prevContentElement.appendChild(img);
-            }
+            // Crear el elemento de media usando la función helper
+            this.createMediaElement(prevImage, prevContentElement);
         }
         
         // Hacer la transición

@@ -85,6 +85,22 @@ body {
     transition: filter 0.3s ease;
 }
 
+/* Para imágenes que necesitan mostrar toda la información */
+.slide img.info-content {
+    object-fit: contain;
+    background: #f8f9fa;
+}
+
+/* Para imágenes que pueden ser cortadas (fotos de productos) */
+.slide img.product-image {
+    object-fit: cover;
+}
+
+/* Para videos siempre usar cover para mejor experiencia */
+.slide video {
+    object-fit: cover;
+}
+
 /* Reloj superpuesto en la esquina */
 .clock-overlay {
     position: absolute;
