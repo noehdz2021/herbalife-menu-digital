@@ -434,7 +434,10 @@ class MenuDisplay {
         
         const duration = this.currentImage.duration * 1000; // Convertir a milisegundos
         
+        console.log(`⏰ Programando transición: ${this.currentImage.title} (${this.currentImage.duration}s)`);
+        
         this.transitionTimeout = setTimeout(() => {
+            console.log(`⏰ Transición programada ejecutada: ${this.currentImage.title}`);
             this.nextSlide();
         }, duration);
     }
@@ -497,6 +500,7 @@ class MenuDisplay {
         
         if (availableImages.length === 0) {
             // Si no hay imágenes disponibles, resetear todas las repeticiones
+            console.log('🔄 Reseteando repeticiones de todas las imágenes');
             this.images.forEach(img => {
                 img.remainingRepeats = img.repeat;
             });
@@ -509,6 +513,8 @@ class MenuDisplay {
         
         // Decrementar el contador de repeticiones
         selectedImage.remainingRepeats--;
+        
+        console.log(`🎯 Seleccionada: ${selectedImage.title} (${selectedImage.duration}s, repeticiones restantes: ${selectedImage.remainingRepeats})`);
         
         return selectedImage;
     }
