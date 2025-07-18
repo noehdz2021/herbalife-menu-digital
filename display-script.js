@@ -284,11 +284,11 @@ class MenuDisplay {
         // Seleccionar la primera imagen de forma aleatoria
         this.currentImage = this.selectRandomImage();
         const activeSlide = document.getElementById(this.currentSlideId);
-        const imageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
+        const contentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
-        if (imageElement) {
+        if (contentElement) {
             // Limpiar el contenido anterior
-            imageElement.innerHTML = '';
+            contentElement.innerHTML = '';
             
             if (this.currentImage.file_type === 'video') {
                 // Crear elemento de video
@@ -307,7 +307,7 @@ class MenuDisplay {
                     this.nextSlide();
                 });
                 
-                imageElement.appendChild(video);
+                contentElement.appendChild(video);
             } else {
                 // Crear elemento de imagen
                 const img = document.createElement('img');
@@ -317,7 +317,7 @@ class MenuDisplay {
                 img.style.height = '100%';
                 img.style.objectFit = 'cover';
                 
-                imageElement.appendChild(img);
+                contentElement.appendChild(img);
             }
         }
         
@@ -338,11 +338,11 @@ class MenuDisplay {
         
         // Preparar la nueva imagen en el slide que va a ser activo
         const nextSlide = document.getElementById(this.currentSlideId);
-        const nextImageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
+        const nextContentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
-        if (nextImageElement) {
+        if (nextContentElement) {
             // Limpiar el contenido anterior
-            nextImageElement.innerHTML = '';
+            nextContentElement.innerHTML = '';
             
             if (this.currentImage.file_type === 'video') {
                 // Crear elemento de video
@@ -361,7 +361,7 @@ class MenuDisplay {
                     this.nextSlide();
                 });
                 
-                nextImageElement.appendChild(video);
+                nextContentElement.appendChild(video);
             } else {
                 // Crear elemento de imagen
                 const img = document.createElement('img');
@@ -371,7 +371,7 @@ class MenuDisplay {
                 img.style.height = '100%';
                 img.style.objectFit = 'cover';
                 
-                nextImageElement.appendChild(img);
+                nextContentElement.appendChild(img);
             }
         }
         
@@ -420,11 +420,11 @@ class MenuDisplay {
         // Preparar la nueva imagen en el slide que va a ser activo
         const prevImage = this.images[this.currentIndex];
         const prevSlide = document.getElementById(this.currentSlideId);
-        const prevImageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
+        const prevContentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
-        if (prevImageElement) {
+        if (prevContentElement) {
             // Limpiar el contenido anterior
-            prevImageElement.innerHTML = '';
+            prevContentElement.innerHTML = '';
             
             if (prevImage.file_type === 'video') {
                 // Crear elemento de video
@@ -443,7 +443,7 @@ class MenuDisplay {
                     this.nextSlide();
                 });
                 
-                prevImageElement.appendChild(video);
+                prevContentElement.appendChild(video);
             } else {
                 // Crear elemento de imagen
                 const img = document.createElement('img');
@@ -453,7 +453,7 @@ class MenuDisplay {
                 img.style.height = '100%';
                 img.style.objectFit = 'cover';
                 
-                prevImageElement.appendChild(img);
+                prevContentElement.appendChild(img);
             }
         }
         
