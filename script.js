@@ -71,14 +71,33 @@ async function uploadFiles() {
                     title: selectedFiles.length > 1 ? `${title} ${i + 1}` : title,
                     category: category,
                     src: urlData.publicUrl,
-                    file_type: isImage ? 'image' : 'video',
                     duration: isImage ? duration : null, // Los videos usan su duración natural
                     repeat: repeat,
                     active: true
                 };
                 
+                // Agregar file_type solo si la columna existe (después de migración)
+                if (isVideo) {
+                    fileData.file_type = 'video';
+                } else {
+                    fileData.file_type = 'image';
+                }
+                
                 console.log('💾 Guardando en base de datos:', fileData.title);
-                await window.supabaseClient.from('menu_images').insert([fileData]);
+                
+                try {
+                    // Intentar insertar con file_type
+                    await window.supabaseClient.from('menu_images').insert([fileData]);
+                } catch (error) {
+                    if (error.message.includes('file_type') || error.message.includes('column')) {
+                        console.log('⚠️ Columna file_type no existe, insertando sin ella...');
+                        // Remover file_type y reintentar
+                        const { file_type, ...fileDataWithoutType } = fileData;
+                        await window.supabaseClient.from('menu_images').insert([fileDataWithoutType]);
+                    } else {
+                        throw error;
+                    }
+                }
             } else {
                 console.warn(`⚠️ Archivo no soportado: ${file.name} (${file.type})`);
             }
@@ -134,7 +153,9 @@ function renderFiles() {
     }
 
     grid.innerHTML = files.map(file => {
-        const isVideo = file.file_type === 'video';
+        // Detectar si es video basado en file_type o extensión de archivo
+        const isVideo = file.file_type === 'video' || 
+                       (file.src && (file.src.includes('.mp4') || file.src.includes('.webm') || file.src.includes('.mov') || file.src.includes('.avi')));
         const icon = isVideo ? '🎥' : '📷';
         const durationText = isVideo ? 'Video' : `${file.duration}s`;
         
