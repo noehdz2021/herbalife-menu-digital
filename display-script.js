@@ -43,16 +43,39 @@ class MenuDisplay {
             video.alt = imageData.title;
             video.autoplay = true;
             video.muted = true;
-            video.loop = true;
+            video.loop = false; // Cambiar a false para evitar repetición infinita
             video.style.width = '100%';
             video.style.height = '100%';
             
             // Detectar formato y aplicar ajuste inteligente para videos
             this.applySmartFitVideo(video, imageData.src);
             
-            // Manejar el final del video
+            // Múltiples eventos para asegurar que se detecte el final del video
             video.addEventListener('ended', () => {
+                console.log('🎥 Video terminado, pasando al siguiente...');
                 this.nextSlide();
+            });
+            
+            video.addEventListener('timeupdate', () => {
+                // Verificar si el video está cerca del final
+                if (video.duration && video.currentTime >= video.duration - 0.1) {
+                    console.log('🎥 Video cerca del final, pasando al siguiente...');
+                    this.nextSlide();
+                }
+            });
+            
+            // Fallback: timer basado en la duración del video
+            video.addEventListener('loadedmetadata', () => {
+                if (video.duration && video.duration > 0) {
+                    console.log(`🎥 Video cargado: ${video.duration}s`);
+                    // Programar cambio después de la duración del video + 0.5s de margen
+                    setTimeout(() => {
+                        if (video.parentNode) { // Verificar que el video aún esté en el DOM
+                            console.log('🎥 Timer de video expirado, pasando al siguiente...');
+                            this.nextSlide();
+                        }
+                    }, (video.duration * 1000) + 500);
+                }
             });
             
             container.appendChild(video);
