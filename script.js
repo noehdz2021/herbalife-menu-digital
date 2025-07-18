@@ -50,7 +50,7 @@ async function uploadFiles() {
             const isVideo = file.type.startsWith('video/');
             
             if (isImage || isVideo) {
-                const fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
+                let fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
                 
                 console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
                 console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
