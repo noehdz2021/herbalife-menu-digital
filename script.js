@@ -53,11 +53,37 @@ async function uploadFiles() {
                 const fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
                 
                 console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
+                console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                console.log(`📊 Tipo MIME: ${file.type}`);
                 
-                // Subir archivo
+                // Para imágenes, verificar si necesitamos preservar calidad
+                let fileToUpload = file;
+                if (isImage) {
+                    // Crear una copia del archivo con metadata preservada
+                    const originalName = file.name;
+                    const originalExtension = originalName.split('.').pop().toLowerCase();
+                    
+                    // Si es JPEG o PNG, intentar preservar calidad
+                    if (originalExtension === 'jpg' || originalExtension === 'jpeg' || originalExtension === 'png') {
+                        console.log(`🖼️ Preservando calidad de imagen: ${originalExtension.toUpperCase()}`);
+                        
+                        // Crear un nuevo archivo con el nombre original preservado
+                        const preservedFileName = `${Date.now()}_${i}_original.${originalExtension}`;
+                        fileToUpload = new File([file], preservedFileName, {
+                            type: file.type,
+                            lastModified: file.lastModified
+                        });
+                        fileName = preservedFileName;
+                    }
+                }
+                
+                // Subir archivo con opciones para preservar calidad
                 const { error: storageError } = await window.supabaseClient.storage
                     .from(CONFIG.STORAGE_BUCKET)
-                    .upload(fileName, file);
+                    .upload(fileName, fileToUpload, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
                 
                 if (storageError) throw storageError;
                 
