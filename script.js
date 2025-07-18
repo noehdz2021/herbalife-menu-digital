@@ -1,5 +1,5 @@
 // Versión minimalista del script con autenticación
-let images = [];
+let files = [];
 
 // Verificar Supabase
 async function checkSupabase() {
@@ -17,22 +17,22 @@ function displayUserInfo() {
     }
 }
 
-// Subir imágenes
-async function uploadImages() {
+// Subir archivos (imágenes y videos)
+async function uploadFiles() {
     if (!window.supabaseClient) {
         alert('Error: Base de datos no disponible');
         return;
     }
     
-    const fileInput = document.getElementById('imageInput');
-    const category = document.getElementById('imageCategory').value;
-    const title = document.getElementById('imageTitle').value;
-    const duration = parseInt(document.getElementById('imageDuration').value);
-    const repeat = parseInt(document.getElementById('imageRepeat').value);
-    const files = fileInput.files;
+    const fileInput = document.getElementById('fileInput');
+    const category = document.getElementById('fileCategory').value;
+    const title = document.getElementById('fileTitle').value;
+    const duration = parseInt(document.getElementById('fileDuration').value);
+    const repeat = parseInt(document.getElementById('fileRepeat').value);
+    const selectedFiles = fileInput.files;
 
-    if (files.length === 0) {
-        alert('Selecciona al menos una imagen');
+    if (selectedFiles.length === 0) {
+        alert('Selecciona al menos un archivo');
         return;
     }
 
@@ -42,14 +42,17 @@ async function uploadImages() {
     }
 
     try {
-        console.log('🔄 Iniciando subida de imágenes...');
+        console.log('🔄 Iniciando subida de archivos...');
         
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (file.type.startsWith('image/')) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            
+            if (isImage || isVideo) {
                 const fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
                 
-                console.log(`📤 Subiendo archivo: ${fileName}`);
+                console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
                 
                 // Subir archivo
                 const { error: storageError } = await window.supabaseClient.storage
@@ -64,36 +67,39 @@ async function uploadImages() {
                     .getPublicUrl(fileName);
                 
                 // Guardar en BD
-                const imageData = {
-                    title: files.length > 1 ? `${title} ${i + 1}` : title,
+                const fileData = {
+                    title: selectedFiles.length > 1 ? `${title} ${i + 1}` : title,
                     category: category,
                     src: urlData.publicUrl,
-                    duration: duration,
+                    file_type: isImage ? 'image' : 'video',
+                    duration: isImage ? duration : null, // Los videos usan su duración natural
                     repeat: repeat,
                     active: true
                 };
                 
-                console.log('💾 Guardando en base de datos:', imageData.title);
-                await window.supabaseClient.from('menu_images').insert([imageData]);
+                console.log('💾 Guardando en base de datos:', fileData.title);
+                await window.supabaseClient.from('menu_images').insert([fileData]);
+            } else {
+                console.warn(`⚠️ Archivo no soportado: ${file.name} (${file.type})`);
             }
         }
 
         // Limpiar formulario
         fileInput.value = '';
-        document.getElementById('imageTitle').value = '';
+        document.getElementById('fileTitle').value = '';
         
-        console.log('✅ Imágenes subidas exitosamente');
-        alert('✅ Imágenes subidas');
-        await loadImages();
+        console.log('✅ Archivos subidos exitosamente');
+        alert('✅ Archivos subidos');
+        await loadFiles();
         
     } catch (error) {
-        console.error('❌ Error subiendo imágenes:', error);
-        alert('Error al subir imágenes: ' + error.message);
+        console.error('❌ Error subiendo archivos:', error);
+        alert('Error al subir archivos: ' + error.message);
     }
 }
 
-// Cargar imágenes
-async function loadImages() {
+// Cargar archivos
+async function loadFiles() {
     if (!window.supabaseClient) return;
 
     try {
@@ -104,67 +110,81 @@ async function loadImages() {
 
         if (error) throw error;
         
-        images = data || [];
-        renderImages();
+        files = data || [];
+        renderFiles();
         updateStats();
         
     } catch (error) {
-        console.error('Error cargando imágenes:', error);
+        console.error('Error cargando archivos:', error);
     }
 }
 
-// Mostrar imágenes
-function renderImages() {
+// Mostrar archivos
+function renderFiles() {
     const grid = document.getElementById('imagesGrid');
     
-    if (!images.length) {
+    if (!files.length) {
         grid.innerHTML = `
             <div class="no-images">
-                <h3>📷 Sin imágenes</h3>
-                <p>Sube tu primera imagen</p>
+                <h3>📁 Sin archivos</h3>
+                <p>Sube tu primer archivo</p>
             </div>
         `;
         return;
     }
 
-    grid.innerHTML = images.map(image => `
-        <div class="image-card">
-            <div class="image-container">
-                <img src="${image.src}" alt="${image.title}">
-                <div class="image-overlay">
-                    <button class="btn btn-small btn-danger" onclick="deleteImage(${image.id})">
-                        🗑️
-                    </button>
+    grid.innerHTML = files.map(file => {
+        const isVideo = file.file_type === 'video';
+        const icon = isVideo ? '🎥' : '📷';
+        const durationText = isVideo ? 'Video' : `${file.duration}s`;
+        
+        return `
+            <div class="image-card">
+                <div class="image-container">
+                    ${isVideo ? 
+                        `<video src="${file.src}" alt="${file.title}" controls>
+                            Tu navegador no soporta videos.
+                        </video>` :
+                        `<img src="${file.src}" alt="${file.title}">`
+                    }
+                    <div class="image-overlay">
+                        <span class="file-type-badge">${icon}</span>
+                        <button class="btn btn-small btn-danger" onclick="deleteFile(${file.id})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                <div class="image-info">
+                    <h4>${file.title}</h4>
+                    <div class="image-meta">
+                        <span class="category">${file.category}</span>
+                        <span class="duration">${durationText}</span>
+                        <span class="repeat">${file.repeat}x</span>
+                    </div>
+                    ${!isVideo ? `
+                        <div class="edit-controls">
+                            <input type="number" 
+                                   value="${file.duration}" 
+                                   min="1" max="60" 
+                                   onchange="updateDuration(${file.id}, this.value)"
+                                   class="edit-input">
+                            <input type="number" 
+                                   value="${file.repeat}" 
+                                   min="1" max="10" 
+                                   onchange="updateRepeat(${file.id}, this.value)"
+                                   class="edit-input">
+                        </div>
+                    ` : ''}
                 </div>
             </div>
-            <div class="image-info">
-                <h4>${image.title}</h4>
-                <div class="image-meta">
-                    <span class="category">${image.category}</span>
-                    <span class="duration">${image.duration}s</span>
-                    <span class="repeat">${image.repeat}x</span>
-                </div>
-                <div class="edit-controls">
-                    <input type="number" 
-                           value="${image.duration}" 
-                           min="1" max="60" 
-                           onchange="updateDuration(${image.id}, this.value)"
-                           class="edit-input">
-                    <input type="number" 
-                           value="${image.repeat}" 
-                           min="1" max="10" 
-                           onchange="updateRepeat(${image.id}, this.value)"
-                           class="edit-input">
-                </div>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Actualizar estadísticas
 function updateStats() {
-    const total = images.length;
-    const active = images.filter(img => img.active).length;
+    const total = files.length;
+    const active = files.filter(file => file.active).length;
     
     document.getElementById('totalImages').textContent = total;
     document.getElementById('activeImages').textContent = active;
@@ -180,8 +200,8 @@ async function updateDuration(id, duration) {
             .update({ duration: parseInt(duration) })
             .eq('id', id);
         
-        const image = images.find(img => img.id === id);
-        if (image) image.duration = parseInt(duration);
+        const file = files.find(f => f.id === id);
+        if (file) file.duration = parseInt(duration);
         
     } catch (error) {
         console.error('Error actualizando duración:', error);
@@ -198,36 +218,36 @@ async function updateRepeat(id, repeat) {
             .update({ repeat: parseInt(repeat) })
             .eq('id', id);
         
-        const image = images.find(img => img.id === id);
-        if (image) image.repeat = parseInt(repeat);
+        const file = files.find(f => f.id === id);
+        if (file) file.repeat = parseInt(repeat);
         
     } catch (error) {
         console.error('Error actualizando repetición:', error);
     }
 }
 
-// Eliminar imagen
-async function deleteImage(id) {
-    if (!window.supabaseClient || !confirm('¿Eliminar imagen?')) return;
+// Eliminar archivo
+async function deleteFile(id) {
+    if (!window.supabaseClient || !confirm('¿Eliminar archivo?')) return;
 
     try {
-        console.log('🗑️ Eliminando imagen ID:', id);
+        console.log('🗑️ Eliminando archivo ID:', id);
         
-        const image = images.find(img => img.id === id);
-        if (image) {
-            console.log('🗑️ Eliminando archivo de storage:', image.src);
-            const fileName = image.src.split('/').pop();
+        const file = files.find(f => f.id === id);
+        if (file) {
+            console.log('🗑️ Eliminando archivo de storage:', file.src);
+            const fileName = file.src.split('/').pop();
             await window.supabaseClient.storage.from(CONFIG.STORAGE_BUCKET).remove([fileName]);
         }
         
         console.log('🗑️ Eliminando registro de base de datos');
         await window.supabaseClient.from('menu_images').delete().eq('id', id);
         
-        console.log('✅ Imagen eliminada exitosamente');
-        await loadImages();
+        console.log('✅ Archivo eliminado exitosamente');
+        await loadFiles();
         
     } catch (error) {
-        console.error('❌ Error eliminando imagen:', error);
+        console.error('❌ Error eliminando archivo:', error);
         alert('Error al eliminar: ' + error.message);
     }
 }
@@ -285,9 +305,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const success = await checkSupabase();
         if (success) {
-            await loadImages();
+            await loadFiles();
         } else {
-            renderImages();
+            renderFiles();
             updateStats();
         }
     } else {

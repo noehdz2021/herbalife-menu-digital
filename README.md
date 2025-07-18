@@ -49,10 +49,11 @@ remote-herbalife/
 
 ### **Funcionalidades:**
 - ✅ **Sistema de autenticación** completo y seguro
-- ✅ **Subida de imágenes** con drag & drop
+- ✅ **Subida de imágenes y videos** con drag & drop
 - ✅ **Categorización:** Bebidas, Productos, Ofertas, Información
-- ✅ **Control de duración:** 1-60 segundos por imagen
-- ✅ **Repetición aleatoria:** 1-10 veces por imagen
+- ✅ **Control de duración:** 1-60 segundos por imagen (videos usan duración natural)
+- ✅ **Reproducción automática de videos** en bucle
+- ✅ **Repetición aleatoria:** 1-10 veces por archivo
 - ✅ **Visualización a pantalla completa** con reloj
 - ✅ **Sincronización en tiempo real** con Supabase
 - ✅ **Interfaz minimalista** y fácil de usar
@@ -86,29 +87,32 @@ Abre `login.html` en tu navegador para acceder al sistema de autenticación.
 2. **Sesión:** La sesión se mantiene activa por 24 horas
 3. **Seguridad:** Todas las rutas administrativas están protegidas
 
-### **Panel de Administración (`index.html`):**
-1. **Subir imágenes:** Selecciona archivos, categoría, título, duración y repetición
-2. **Editar configuración:** Usa los controles inline para ajustar duración y repetición
+### **Panel de Administración (`admin.html`):**
+1. **Subir archivos:** Selecciona imágenes o videos, categoría, título, duración (solo imágenes) y repetición
+2. **Editar configuración:** Usa los controles inline para ajustar duración y repetición (solo imágenes)
 3. **Ver pantalla:** Haz clic en "📺 Pantalla" para abrir la visualización
-4. **Eliminar:** Usa el botón 🗑️ para eliminar imágenes
+4. **Eliminar:** Usa el botón 🗑️ para eliminar archivos
 5. **Cerrar sesión:** Usa el botón "🚪 Cerrar Sesión" para salir
 
 ### **Pantalla de Visualización (`display.html`):**
-- **Pantalla completa:** Las imágenes cubren toda la pantalla
+- **Pantalla completa:** Las imágenes y videos cubren toda la pantalla
 - **Reloj:** Muestra la hora actual en la esquina superior derecha
-- **Repetición aleatoria:** Las imágenes aparecen de forma aleatoria según su configuración
+- **Reproducción automática:** Los videos se reproducen automáticamente en bucle
+- **Repetición aleatoria:** Los archivos aparecen de forma aleatoria según su configuración
 - **Transiciones suaves:** Cambios automáticos con efectos de fade
 
 ## ⚙️ Configuración
 
 ### **Duración:**
-- **Rango:** 1-60 segundos
-- **Por defecto:** 5 segundos
+- **Imágenes:** 1-60 segundos (configurable)
+- **Videos:** Duración natural del archivo (no configurable)
+- **Por defecto:** 5 segundos para imágenes
 - **Edición:** Controles inline en cada imagen
 
 ### **Repetición:**
 - **Rango:** 1-10 veces
 - **Comportamiento:** Aleatorio (no secuencial)
+- **Videos:** Se reproducen en bucle hasta completar repeticiones
 - **Reset automático:** Cuando todas las repeticiones se agotan, se reinician
 
 ### **Categorías:**
@@ -157,15 +161,48 @@ El sistema funciona en:
 2. Revisa conexión a internet
 3. Usa el botón "🔄 Reconectar BD"
 
-### **Imágenes no se muestran:**
-1. Verifica que estén marcadas como "Activas"
+### **Archivos no se muestran:**
+1. Verifica que estén marcados como "Activos"
 2. Revisa permisos de storage en Supabase
-3. Comprueba formato de archivo (JPG, PNG, etc.)
+3. Comprueba formato de archivo (JPG, PNG, MP4, WebM, etc.)
 
 ### **Repetición no funciona:**
 1. Verifica que el valor esté entre 1-10
 2. Recarga la pantalla de display
-3. Comprueba que haya múltiples imágenes activas
+3. Comprueba que haya múltiples archivos activos
+
+### **Videos no se reproducen:**
+1. Verifica que el navegador soporte el formato de video
+2. Comprueba que el video esté en formato MP4 o WebM
+3. Asegúrate de que el video no sea muy grande (>100MB)
+
+## 🎥 Soporte de Videos
+
+### **Formatos Soportados:**
+- **MP4** (H.264) - Recomendado
+- **WebM** (VP8/VP9) - Alternativa moderna
+- **OGG** - Soporte limitado
+- **MOV, AVI** - Soporte básico
+
+### **Características de Video:**
+- ✅ **Reproducción automática** al cargar
+- ✅ **Bucle continuo** hasta completar repeticiones
+- ✅ **Sin sonido** (muted por defecto)
+- ✅ **Transición automática** al finalizar
+- ✅ **Pantalla completa** con object-fit: cover
+
+### **Configuración:**
+1. **Ejecutar migración:** `add-file-type-column.sql`
+2. **Subir videos:** Usar el panel de administración
+3. **Verificar reproducción:** En la pantalla de display
+
+### **Limitaciones:**
+- **Tamaño máximo:** 100MB por archivo
+- **Duración:** No configurable (usa duración natural)
+- **Sonido:** Desactivado por defecto
+- **Controles:** Ocultos para experiencia limpia
+
+Para más detalles, consulta `SOPORTE-VIDEOS.md`.
 
 ## 📄 Licencia
 

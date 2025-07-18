@@ -287,8 +287,38 @@ class MenuDisplay {
         const imageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
         
         if (imageElement) {
-            imageElement.src = this.currentImage.src;
-            imageElement.alt = this.currentImage.title;
+            // Limpiar el contenido anterior
+            imageElement.innerHTML = '';
+            
+            if (this.currentImage.file_type === 'video') {
+                // Crear elemento de video
+                const video = document.createElement('video');
+                video.src = this.currentImage.src;
+                video.alt = this.currentImage.title;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                
+                // Manejar el final del video
+                video.addEventListener('ended', () => {
+                    this.nextSlide();
+                });
+                
+                imageElement.appendChild(video);
+            } else {
+                // Crear elemento de imagen
+                const img = document.createElement('img');
+                img.src = this.currentImage.src;
+                img.alt = this.currentImage.title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                
+                imageElement.appendChild(img);
+            }
         }
         
         // Asegurar que solo el slide actual esté activo
@@ -311,8 +341,38 @@ class MenuDisplay {
         const nextImageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
         
         if (nextImageElement) {
-            nextImageElement.src = this.currentImage.src;
-            nextImageElement.alt = this.currentImage.title;
+            // Limpiar el contenido anterior
+            nextImageElement.innerHTML = '';
+            
+            if (this.currentImage.file_type === 'video') {
+                // Crear elemento de video
+                const video = document.createElement('video');
+                video.src = this.currentImage.src;
+                video.alt = this.currentImage.title;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                
+                // Manejar el final del video
+                video.addEventListener('ended', () => {
+                    this.nextSlide();
+                });
+                
+                nextImageElement.appendChild(video);
+            } else {
+                // Crear elemento de imagen
+                const img = document.createElement('img');
+                img.src = this.currentImage.src;
+                img.alt = this.currentImage.title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                
+                nextImageElement.appendChild(img);
+            }
         }
         
         // Hacer la transición
@@ -320,8 +380,10 @@ class MenuDisplay {
         document.getElementById('slide2').classList.remove('active');
         nextSlide.classList.add('active');
         
-        // Programar la siguiente transición
-        this.scheduleNextTransition();
+        // Programar la siguiente transición solo para imágenes
+        if (this.currentImage.file_type !== 'video') {
+            this.scheduleNextTransition();
+        }
     }
 
     selectRandomImage() {
@@ -361,8 +423,38 @@ class MenuDisplay {
         const prevImageElement = document.getElementById(this.currentSlideId.replace('slide', 'slideImage'));
         
         if (prevImageElement) {
-            prevImageElement.src = prevImage.src;
-            prevImageElement.alt = prevImage.title;
+            // Limpiar el contenido anterior
+            prevImageElement.innerHTML = '';
+            
+            if (prevImage.file_type === 'video') {
+                // Crear elemento de video
+                const video = document.createElement('video');
+                video.src = prevImage.src;
+                video.alt = prevImage.title;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                
+                // Manejar el final del video
+                video.addEventListener('ended', () => {
+                    this.nextSlide();
+                });
+                
+                prevImageElement.appendChild(video);
+            } else {
+                // Crear elemento de imagen
+                const img = document.createElement('img');
+                img.src = prevImage.src;
+                img.alt = prevImage.title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                
+                prevImageElement.appendChild(img);
+            }
         }
         
         // Hacer la transición
@@ -370,8 +462,10 @@ class MenuDisplay {
         document.getElementById('slide2').classList.remove('active');
         prevSlide.classList.add('active');
         
-        // Programar la siguiente transición
-        this.scheduleNextTransition();
+        // Programar la siguiente transición solo para imágenes
+        if (prevImage.file_type !== 'video') {
+            this.scheduleNextTransition();
+        }
     }
 
 

@@ -15,6 +15,9 @@
 - `init.js` - Inicialización de Supabase
 - `config.js` - Configuración
 
+### Base de Datos:
+- `add-file-type-column.sql` - Script para agregar soporte de videos
+
 ### CSS:
 - `styles.css` - Estilos del panel
 - `display-styles.css` - Estilos del display
@@ -27,6 +30,7 @@
 
 ## 📚 Documentación:
 - `README.md` - Documentación principal
+- `SOPORTE-VIDEOS.md` - Guía de soporte de videos
 - `INSTRUCCIONES-*.md` - Guías de uso
 
 ## 🔧 Para Restaurar Archivos SQL:
