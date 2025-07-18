@@ -84,14 +84,21 @@ async function uploadFiles() {
                 }
                 
                 console.log('💾 Guardando en base de datos:', fileData.title);
-                console.log('📊 Datos a insertar:', fileData);
+                console.log('📊 Datos a insertar:', JSON.stringify(fileData, null, 2));
                 
                 try {
                     // Intentar insertar con file_type
+                    console.log('🔄 Intentando inserción con file_type...');
                     const { data, error } = await window.supabaseClient.from('menu_images').insert([fileData]).select();
                     
                     if (error) {
                         console.error('❌ Error en inserción:', error);
+                        console.error('❌ Detalles del error:', {
+                            message: error.message,
+                            details: error.details,
+                            hint: error.hint,
+                            code: error.code
+                        });
                         throw error;
                     }
                     
