@@ -43,7 +43,7 @@ Las imágenes pueden perder calidad o modificarse durante la subida debido a:
 
 ### **1. Ejecutar Script SQL:**
 ```sql
--- Copiar y pegar el contenido de optimize-storage-quality.sql
+-- Copiar y pegar el contenido de optimize-storage-simple.sql
 -- en el SQL Editor de Supabase
 ```
 

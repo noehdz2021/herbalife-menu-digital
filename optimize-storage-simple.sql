@@ -1,4 +1,4 @@
--- Script para optimizar la calidad de imágenes en Supabase Storage
+-- Script simple para optimizar la calidad de imágenes en Supabase Storage
 -- Ejecutar en el SQL Editor de Supabase
 
 -- 1. Verificar la configuración actual del bucket
@@ -27,7 +27,20 @@ SET
     ]
 WHERE name = 'menu-images';
 
--- 3. Verificar configuración de RLS (Row Level Security)
+-- 3. Verificar archivos existentes y sus metadatos
+SELECT 
+    name,
+    metadata,
+    updated_at,
+    created_at,
+    (metadata->>'size')::bigint as file_size_bytes,
+    ROUND((metadata->>'size')::bigint / 1024.0 / 1024.0, 2) as file_size_mb
+FROM storage.objects 
+WHERE bucket_id = 'menu-images'
+ORDER BY created_at DESC
+LIMIT 10;
+
+-- 4. Verificar configuración de RLS
 SELECT 
     schemaname,
     tablename,
@@ -35,28 +48,15 @@ SELECT
 FROM pg_tables 
 WHERE tablename = 'objects' AND schemaname = 'storage';
 
--- 4. Verificar políticas existentes en storage.objects
-SELECT 
-    policyname,
-    permissive,
-    roles,
-    cmd,
-    qual,
-    with_check
-FROM pg_policies 
-WHERE tablename = 'objects' AND schemaname = 'storage';
+-- 5. Comentarios sobre optimización
+COMMENT ON TABLE storage.objects IS 'Objetos de storage con calidad preservada';
+COMMENT ON COLUMN storage.objects.metadata IS 'Metadatos preservados del archivo original';
 
--- 5. Verificar archivos existentes
+-- 6. Verificar que los cambios se aplicaron
 SELECT 
     name,
-    metadata,
-    updated_at,
-    created_at
-FROM storage.objects 
-WHERE bucket_id = 'menu-images'
-ORDER BY created_at DESC
-LIMIT 10;
-
--- 6. Comentarios sobre optimización
-COMMENT ON TABLE storage.objects IS 'Objetos de storage con calidad preservada';
-COMMENT ON COLUMN storage.objects.metadata IS 'Metadatos preservados del archivo original'; 
+    public,
+    file_size_limit,
+    allowed_mime_types
+FROM storage.buckets 
+WHERE name = 'menu-images'; 
