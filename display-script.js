@@ -62,18 +62,62 @@ class MenuDisplay {
             img.style.width = '100%';
             img.style.height = '100%';
             
-            // Detectar automáticamente el tipo de contenido
-            if (imageData.category === 'informacion' || imageData.title.toLowerCase().includes('info')) {
-                img.className = 'info-content';
-                img.style.objectFit = 'contain';
-                img.style.background = '#f8f9fa';
-            } else {
-                img.className = 'product-image';
-                img.style.objectFit = 'cover';
-            }
+            // Detectar formato y aplicar ajuste inteligente para pantalla de 40"
+            this.applySmartFit(img, imageData.src);
             
             container.appendChild(img);
         }
+    }
+
+    // Función para aplicar ajuste inteligente basado en formato
+    applySmartFit(img, src) {
+        // Crear una imagen temporal para obtener dimensiones
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            const width = tempImg.naturalWidth;
+            const height = tempImg.naturalHeight;
+            const aspectRatio = width / height;
+            
+            console.log(`📐 Formato detectado: ${width}x${height} (ratio: ${aspectRatio.toFixed(2)})`);
+            
+            // Para pantalla de 40" (típicamente 16:9 o 4:3)
+            const screenRatio = 16/9; // Asumiendo pantalla 16:9
+            
+            if (aspectRatio > 1.5) {
+                // Imagen muy ancha (panorámica) - usar contain para mostrar todo
+                img.className = 'wide-content';
+                img.style.objectFit = 'contain';
+                img.style.background = '#f8f9fa';
+                console.log('📐 Aplicando: contain (imagen panorámica)');
+            } else if (aspectRatio < 0.8) {
+                // Imagen muy alta (vertical) - usar contain para mostrar todo
+                img.className = 'tall-content';
+                img.style.objectFit = 'contain';
+                img.style.background = '#f8f9fa';
+                console.log('📐 Aplicando: contain (imagen vertical)');
+            } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
+                // Formato similar a la pantalla - usar cover para llenar
+                img.className = 'screen-fit';
+                img.style.objectFit = 'cover';
+                console.log('📐 Aplicando: cover (formato similar a pantalla)');
+            } else {
+                // Formato estándar - usar contain para mostrar completo
+                img.className = 'standard-content';
+                img.style.objectFit = 'contain';
+                img.style.background = '#f8f9fa';
+                console.log('📐 Aplicando: contain (formato estándar)');
+            }
+        };
+        
+        tempImg.onerror = () => {
+            // Si no se puede cargar, usar ajuste por defecto
+            img.className = 'default-content';
+            img.style.objectFit = 'contain';
+            img.style.background = '#f8f9fa';
+            console.log('📐 Aplicando: contain (por defecto)');
+        };
+        
+        tempImg.src = src;
     }
 
     async waitForSupabase() {

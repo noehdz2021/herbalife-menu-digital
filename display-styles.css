@@ -85,15 +85,35 @@ body {
     transition: filter 0.3s ease;
 }
 
-/* Para imágenes que necesitan mostrar toda la información */
-.slide img.info-content {
+/* Sistema inteligente de ajuste para pantalla de 40" */
+
+/* Imágenes panorámicas (muy anchas) - mostrar completo */
+.slide img.wide-content {
     object-fit: contain;
     background: #f8f9fa;
 }
 
-/* Para imágenes que pueden ser cortadas (fotos de productos) */
-.slide img.product-image {
+/* Imágenes verticales (muy altas) - mostrar completo */
+.slide img.tall-content {
+    object-fit: contain;
+    background: #f8f9fa;
+}
+
+/* Formato similar a pantalla 16:9 - llenar pantalla */
+.slide img.screen-fit {
     object-fit: cover;
+}
+
+/* Formato estándar - mostrar completo */
+.slide img.standard-content {
+    object-fit: contain;
+    background: #f8f9fa;
+}
+
+/* Ajuste por defecto */
+.slide img.default-content {
+    object-fit: contain;
+    background: #f8f9fa;
 }
 
 /* Para videos siempre usar cover para mejor experiencia */
