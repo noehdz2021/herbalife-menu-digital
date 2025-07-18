@@ -71,7 +71,7 @@ async function uploadFiles() {
                     title: selectedFiles.length > 1 ? `${title} ${i + 1}` : title,
                     category: category,
                     src: urlData.publicUrl,
-                    duration: isImage ? duration : null, // Los videos usan su duración natural
+                    duration: isImage ? duration : 10, // Los videos usan duración por defecto (se ignora en reproducción)
                     repeat: repeat,
                     active: true
                 };
@@ -84,16 +84,32 @@ async function uploadFiles() {
                 }
                 
                 console.log('💾 Guardando en base de datos:', fileData.title);
+                console.log('📊 Datos a insertar:', fileData);
                 
                 try {
                     // Intentar insertar con file_type
-                    await window.supabaseClient.from('menu_images').insert([fileData]);
+                    const { data, error } = await window.supabaseClient.from('menu_images').insert([fileData]).select();
+                    
+                    if (error) {
+                        console.error('❌ Error en inserción:', error);
+                        throw error;
+                    }
+                    
+                    console.log('✅ Registro insertado exitosamente:', data);
                 } catch (error) {
+                    console.error('❌ Error detallado:', error);
                     if (error.message.includes('file_type') || error.message.includes('column')) {
                         console.log('⚠️ Columna file_type no existe, insertando sin ella...');
                         // Remover file_type y reintentar
                         const { file_type, ...fileDataWithoutType } = fileData;
-                        await window.supabaseClient.from('menu_images').insert([fileDataWithoutType]);
+                        const { data, error: retryError } = await window.supabaseClient.from('menu_images').insert([fileDataWithoutType]).select();
+                        
+                        if (retryError) {
+                            console.error('❌ Error en reintento:', retryError);
+                            throw retryError;
+                        }
+                        
+                        console.log('✅ Registro insertado sin file_type:', data);
                     } else {
                         throw error;
                     }
