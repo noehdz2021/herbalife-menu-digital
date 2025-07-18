@@ -46,7 +46,9 @@ class MenuDisplay {
             video.loop = true;
             video.style.width = '100%';
             video.style.height = '100%';
-            video.style.objectFit = 'cover';
+            
+            // Detectar formato y aplicar ajuste inteligente para videos
+            this.applySmartFitVideo(video, imageData.src);
             
             // Manejar el final del video
             video.addEventListener('ended', () => {
@@ -118,6 +120,54 @@ class MenuDisplay {
         };
         
         tempImg.src = src;
+    }
+
+    // Función para aplicar ajuste inteligente para videos
+    applySmartFitVideo(video, src) {
+        // Esperar a que el video cargue los metadatos
+        video.addEventListener('loadedmetadata', () => {
+            const width = video.videoWidth;
+            const height = video.videoHeight;
+            const aspectRatio = width / height;
+            
+            console.log(`🎥 Formato de video detectado: ${width}x${height} (ratio: ${aspectRatio.toFixed(2)})`);
+            
+            // Para pantalla de 40" (típicamente 16:9)
+            const screenRatio = 16/9;
+            
+            if (aspectRatio > 1.5) {
+                // Video muy ancho (panorámico) - usar contain para mostrar todo
+                video.className = 'video-wide';
+                video.style.objectFit = 'contain';
+                video.style.background = '#000000';
+                console.log('🎥 Aplicando: contain (video panorámico)');
+            } else if (aspectRatio < 0.8) {
+                // Video vertical (reels, stories) - usar contain para mostrar completo
+                video.className = 'video-vertical';
+                video.style.objectFit = 'contain';
+                video.style.background = '#000000';
+                console.log('🎥 Aplicando: contain (video vertical/reel)');
+            } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
+                // Formato similar a la pantalla - usar cover para llenar
+                video.className = 'video-screen-fit';
+                video.style.objectFit = 'cover';
+                console.log('🎥 Aplicando: cover (formato similar a pantalla)');
+            } else {
+                // Formato estándar - usar contain para mostrar completo
+                video.className = 'video-standard';
+                video.style.objectFit = 'contain';
+                video.style.background = '#000000';
+                console.log('🎥 Aplicando: contain (formato estándar)');
+            }
+        });
+        
+        // Fallback si no se pueden cargar los metadatos
+        video.addEventListener('error', () => {
+            video.className = 'video-default';
+            video.style.objectFit = 'contain';
+            video.style.background = '#000000';
+            console.log('🎥 Aplicando: contain (por defecto)');
+        });
     }
 
     async waitForSupabase() {

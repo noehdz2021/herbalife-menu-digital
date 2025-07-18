@@ -116,9 +116,35 @@ body {
     background: #f8f9fa;
 }
 
-/* Para videos siempre usar cover para mejor experiencia */
-.slide video {
+/* Sistema inteligente de ajuste para videos */
+
+/* Videos panorámicos (muy anchos) - mostrar completo */
+.slide video.video-wide {
+    object-fit: contain;
+    background: #000000;
+}
+
+/* Videos verticales (reels, stories) - mostrar completo */
+.slide video.video-vertical {
+    object-fit: contain;
+    background: #000000;
+}
+
+/* Formato similar a pantalla 16:9 - llenar pantalla */
+.slide video.video-screen-fit {
     object-fit: cover;
+}
+
+/* Formato estándar - mostrar completo */
+.slide video.video-standard {
+    object-fit: contain;
+    background: #000000;
+}
+
+/* Ajuste por defecto para videos */
+.slide video.video-default {
+    object-fit: contain;
+    background: #000000;
 }
 
 /* Reloj superpuesto en la esquina */
