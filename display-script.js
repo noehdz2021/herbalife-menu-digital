@@ -34,20 +34,21 @@ class MenuDisplay {
         this.setupPeriodicRefresh();
     }
 
-    // Función para establecer fondo difuminado
+    // Función para establecer fondo difuminado usando la misma imagen
     setBlurredBackground(container, imageSrc) {
         if (container && imageSrc) {
             // Establecer la imagen de fondo en el pseudo-elemento ::before usando CSS
-            container.style.setProperty('--blur-bg-image', `url(${imageSrc})`);
+            // Esto crea un efecto de fondo difuminado con los colores de la imagen
+            container.style.setProperty('--blur-bg-image', `url("${imageSrc}")`);
+            console.log('🎨 Fondo difuminado establecido con imagen:', imageSrc);
         }
     }
 
     // Función helper para crear elementos de media
     createMediaElement(imageData, container) {
-        // Establecer fondo difuminado para imágenes
-        if (imageData.file_type !== 'video') {
-            this.setBlurredBackground(container, imageData.src);
-        }
+        // Establecer fondo difuminado siempre (para imágenes y videos)
+        // Usa la misma imagen/video como fondo difuminado
+        this.setBlurredBackground(container, imageData.src);
         
         if (imageData.file_type === 'video') {
             // Crear elemento de video
@@ -62,9 +63,6 @@ class MenuDisplay {
             
             // Detectar formato y aplicar ajuste inteligente para videos
             this.applySmartFitVideo(video, imageData.src);
-            
-            // Establecer fondo difuminado también para videos
-            this.setBlurredBackground(container, imageData.src);
             
             // Múltiples eventos para asegurar que se detecte el final del video
             video.addEventListener('ended', () => {
@@ -274,10 +272,16 @@ class MenuDisplay {
             // Guardar las imágenes originales sin duplicar
             this.images = (data || []).map(img => ({
                 ...img,
-                duration: img.duration || 5,
-                repeat: img.repeat || 1,
-                remainingRepeats: img.repeat || 1 // Contador de repeticiones restantes
+                duration: parseInt(img.duration) || 5, // Asegurar que sea un número entero
+                repeat: parseInt(img.repeat) || 1, // Asegurar que sea un número entero
+                remainingRepeats: parseInt(img.repeat) || 1 // Contador de repeticiones restantes
             }));
+            
+            console.log(`📊 Imágenes cargadas con duraciones:`, this.images.map(img => ({
+                title: img.title,
+                duration: img.duration,
+                repeat: img.repeat
+            })));
             
             console.log(`✅ Cargadas ${this.images.length} imágenes`);
             
@@ -446,19 +450,39 @@ class MenuDisplay {
     }
 
     scheduleNextTransition() {
-        if (!this.currentImage) return;
+        // Limpiar timeout anterior si existe
+        if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+            this.transitionTimeout = null;
+        }
         
-        const duration = this.currentImage.duration * 1000; // Convertir a milisegundos
+        if (!this.currentImage) {
+            console.warn('⚠️ No hay imagen actual para programar transición');
+            return;
+        }
         
-        console.log(`⏰ Programando transición: ${this.currentImage.title} (${this.currentImage.duration}s)`);
+        // Validar y obtener duración (por defecto 5 segundos si no está definida)
+        const durationSeconds = parseInt(this.currentImage.duration) || 5;
+        const duration = durationSeconds * 1000; // Convertir a milisegundos
+        
+        // Validar que la duración sea válida (mínimo 1 segundo, máximo 60 segundos)
+        const validDuration = Math.max(1000, Math.min(60000, duration));
+        
+        console.log(`⏰ Programando transición: ${this.currentImage.title} (${durationSeconds}s / ${validDuration}ms)`);
         
         this.transitionTimeout = setTimeout(() => {
-            console.log(`⏰ Transición programada ejecutada: ${this.currentImage.title}`);
+            console.log(`⏰ Transición programada ejecutada: ${this.currentImage.title} después de ${durationSeconds}s`);
             this.nextSlide();
-        }, duration);
+        }, validDuration);
     }
 
     showCurrentSlide() {
+        // Limpiar timeout anterior si existe
+        if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+            this.transitionTimeout = null;
+        }
+        
         // Seleccionar la primera imagen de forma aleatoria
         this.currentImage = this.selectRandomImage();
         const activeSlide = document.getElementById(this.currentSlideId);
@@ -476,9 +500,20 @@ class MenuDisplay {
         document.getElementById('slide1').classList.remove('active');
         document.getElementById('slide2').classList.remove('active');
         activeSlide.classList.add('active');
+        
+        // Programar la siguiente transición solo para imágenes (los videos manejan su propia duración)
+        if (this.currentImage && this.currentImage.file_type !== 'video') {
+            this.scheduleNextTransition();
+        }
     }
 
     nextSlide() {
+        // Limpiar timeout anterior si existe
+        if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+            this.transitionTimeout = null;
+        }
+        
         if (this.images.length <= 1) return;
         
         // Seleccionar la siguiente imagen de forma aleatoria considerando repeticiones
@@ -504,8 +539,8 @@ class MenuDisplay {
         document.getElementById('slide2').classList.remove('active');
         nextSlide.classList.add('active');
         
-        // Programar la siguiente transición solo para imágenes
-        if (this.currentImage.file_type !== 'video') {
+        // Programar la siguiente transición solo para imágenes (los videos manejan su propia duración)
+        if (this.currentImage && this.currentImage.file_type !== 'video') {
             this.scheduleNextTransition();
         }
     }
