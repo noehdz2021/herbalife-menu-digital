@@ -17,6 +17,41 @@ function displayUserInfo() {
     }
 }
 
+// Función para actualizar la barra de progreso
+function updateUploadProgress(current, total, fileName) {
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressPercent = document.getElementById('uploadPercent');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadFileName = document.getElementById('uploadFileName');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (current === 0) {
+        // Iniciar progreso
+        uploadProgress.style.display = 'block';
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Subiendo...';
+    }
+    
+    const percent = Math.round((current / total) * 100);
+    progressBar.style.width = percent + '%';
+    progressPercent.textContent = percent + '%';
+    uploadStatus.textContent = `Subiendo archivo ${current} de ${total}`;
+    uploadFileName.textContent = fileName || '';
+    
+    if (current === total) {
+        // Completado
+        uploadStatus.textContent = '✅ Subida completada';
+        setTimeout(() => {
+            uploadProgress.style.display = 'none';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Subir';
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+        }, 2000);
+    }
+}
+
 // Subir archivos (imágenes y videos)
 async function uploadFiles() {
     if (!window.supabaseClient) {
@@ -44,7 +79,30 @@ async function uploadFiles() {
     try {
         console.log('🔄 Iniciando subida de archivos...');
         
+        // Filtrar solo archivos válidos
+        const validFiles = Array.from(selectedFiles).filter(file => {
+            return file.type.startsWith('image/') || file.type.startsWith('video/');
+        });
+        
+        const totalFiles = validFiles.length;
+        let uploadedCount = 0;
+        
+        updateUploadProgress(0, totalFiles, '');
+        
         for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            
+            if (isImage || isVideo) {
+                // Actualizar progreso antes de subir
+                updateUploadProgress(uploadedCount, totalFiles, file.name);
+                
+                let fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
+                
+                console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
+                console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                console.log(`📊 Tipo MIME: ${file.type}`);
             const file = selectedFiles[i];
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
@@ -147,21 +205,40 @@ async function uploadFiles() {
                         throw error;
                     }
                 }
+                
+                // Incrementar contador de archivos subidos
+                uploadedCount++;
+                updateUploadProgress(uploadedCount, totalFiles, file.name);
+                
             } else {
                 console.warn(`⚠️ Archivo no soportado: ${file.name} (${file.type})`);
             }
         }
+
+        // Actualizar progreso final
+        updateUploadProgress(totalFiles, totalFiles, 'Completado');
 
         // Limpiar formulario
         fileInput.value = '';
         document.getElementById('fileTitle').value = '';
         
         console.log('✅ Archivos subidos exitosamente');
-        alert('✅ Archivos subidos');
         await loadFiles();
         
     } catch (error) {
         console.error('❌ Error subiendo archivos:', error);
+        
+        // Ocultar barra de progreso en caso de error
+        const uploadProgress = document.getElementById('uploadProgress');
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadProgress) {
+            uploadProgress.style.display = 'none';
+        }
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Subir';
+        }
+        
         alert('Error al subir archivos: ' + error.message);
     }
 }

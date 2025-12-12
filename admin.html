@@ -50,9 +50,21 @@
                         <label>Repetir:</label>
                         <input type="number" id="fileRepeat" min="1" max="10" value="1">
                     </div>
-                    <button class="btn btn-primary" onclick="uploadFiles()">
+                    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">
                         Subir
                     </button>
+                    
+                    <!-- Barra de progreso -->
+                    <div id="uploadProgress" class="upload-progress-container">
+                        <div class="upload-progress-header">
+                            <span id="uploadStatus" class="upload-status">Subiendo...</span>
+                            <span id="uploadPercent" class="upload-percent">0%</span>
+                        </div>
+                        <div class="upload-progress-bar-container">
+                            <div id="uploadProgressBar" class="upload-progress-bar"></div>
+                        </div>
+                        <div id="uploadFileName" class="upload-file-name"></div>
+                    </div>
                 </div>
             </div>
 
