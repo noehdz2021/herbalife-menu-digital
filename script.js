@@ -103,16 +103,6 @@ async function uploadFiles() {
                 console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
                 console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
                 console.log(`📊 Tipo MIME: ${file.type}`);
-            const file = selectedFiles[i];
-            const isImage = file.type.startsWith('image/');
-            const isVideo = file.type.startsWith('video/');
-            
-            if (isImage || isVideo) {
-                let fileName = `${Date.now()}_${i}.${file.name.split('.').pop()}`;
-                
-                console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
-                console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-                console.log(`📊 Tipo MIME: ${file.type}`);
                 
                 // Para imágenes, verificar si necesitamos preservar calidad
                 let fileToUpload = file;
