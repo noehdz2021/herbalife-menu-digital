@@ -34,8 +34,21 @@ class MenuDisplay {
         this.setupPeriodicRefresh();
     }
 
+    // Función para establecer fondo difuminado
+    setBlurredBackground(container, imageSrc) {
+        if (container && imageSrc) {
+            // Establecer la imagen de fondo en el pseudo-elemento ::before usando CSS
+            container.style.setProperty('--blur-bg-image', `url(${imageSrc})`);
+        }
+    }
+
     // Función helper para crear elementos de media
     createMediaElement(imageData, container) {
+        // Establecer fondo difuminado para imágenes
+        if (imageData.file_type !== 'video') {
+            this.setBlurredBackground(container, imageData.src);
+        }
+        
         if (imageData.file_type === 'video') {
             // Crear elemento de video
             const video = document.createElement('video');
@@ -49,6 +62,9 @@ class MenuDisplay {
             
             // Detectar formato y aplicar ajuste inteligente para videos
             this.applySmartFitVideo(video, imageData.src);
+            
+            // Establecer fondo difuminado también para videos
+            this.setBlurredBackground(container, imageData.src);
             
             // Múltiples eventos para asegurar que se detecte el final del video
             video.addEventListener('ended', () => {
@@ -112,13 +128,13 @@ class MenuDisplay {
                 // Imagen muy ancha (panorámica) - usar contain para mostrar todo
                 img.className = 'wide-content';
                 img.style.objectFit = 'contain';
-                img.style.background = '#f8f9fa';
+                img.style.background = 'transparent';
                 console.log('📐 Aplicando: contain (imagen panorámica)');
             } else if (aspectRatio < 0.8) {
                 // Imagen muy alta (vertical) - usar contain para mostrar todo
                 img.className = 'tall-content';
                 img.style.objectFit = 'contain';
-                img.style.background = '#f8f9fa';
+                img.style.background = 'transparent';
                 console.log('📐 Aplicando: contain (imagen vertical)');
             } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
                 // Formato similar a la pantalla - usar cover para llenar
@@ -129,7 +145,7 @@ class MenuDisplay {
                 // Formato estándar - usar contain para mostrar completo
                 img.className = 'standard-content';
                 img.style.objectFit = 'contain';
-                img.style.background = '#f8f9fa';
+                img.style.background = 'transparent';
                 console.log('📐 Aplicando: contain (formato estándar)');
             }
         };
@@ -138,7 +154,7 @@ class MenuDisplay {
             // Si no se puede cargar, usar ajuste por defecto
             img.className = 'default-content';
             img.style.objectFit = 'contain';
-            img.style.background = '#f8f9fa';
+            img.style.background = 'transparent';
             console.log('📐 Aplicando: contain (por defecto)');
         };
         
