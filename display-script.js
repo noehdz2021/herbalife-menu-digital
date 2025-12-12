@@ -34,14 +34,23 @@ class MenuDisplay {
         this.setupPeriodicRefresh();
     }
 
-    // Función para establecer fondo difuminado usando la misma imagen
+    // Función para crear/actualizar fondo difuminado usando la misma imagen
     setBlurredBackground(container, imageSrc) {
-        if (container && imageSrc) {
-            // Establecer la imagen de fondo en el pseudo-elemento ::before usando CSS
-            // Esto crea un efecto de fondo difuminado con los colores de la imagen
-            container.style.setProperty('--blur-bg-image', `url("${imageSrc}")`);
-            console.log('🎨 Fondo difuminado establecido con imagen:', imageSrc);
+        if (!container || !imageSrc) return;
+        
+        // Buscar o crear el elemento de fondo difuminado
+        let blurBg = container.querySelector('.blur-background');
+        
+        if (!blurBg) {
+            // Crear elemento de fondo difuminado
+            blurBg = document.createElement('div');
+            blurBg.className = 'blur-background';
+            container.insertBefore(blurBg, container.firstChild);
         }
+        
+        // Establecer la imagen de fondo directamente
+        blurBg.style.backgroundImage = `url("${imageSrc}")`;
+        console.log('🎨 Fondo difuminado establecido con imagen:', imageSrc);
     }
 
     // Función helper para crear elementos de media

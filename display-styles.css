@@ -77,14 +77,12 @@ body {
 }
 
 /* Fondo difuminado para imágenes - usa la misma imagen ampliada y difuminada */
-.slide-content::before {
-    content: '';
+.blur-background {
     position: absolute;
     top: -30%;
     left: -30%;
     width: 160%;
     height: 160%;
-    background-image: var(--blur-bg-image, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -92,9 +90,10 @@ body {
     opacity: 0.75;
     z-index: 0;
     transition: opacity 1s ease-in-out, background-image 1s ease-in-out, filter 1s ease-in-out;
+    pointer-events: none;
 }
 
-.slide.active .slide-content::before {
+.slide.active .blur-background {
     opacity: 0.85;
     filter: blur(60px) brightness(0.9) saturate(1.15) contrast(0.95);
 }
