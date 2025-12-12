@@ -245,22 +245,41 @@ async function uploadFiles() {
 
 // Cargar archivos
 async function loadFiles() {
-    if (!window.supabaseClient) return;
+    if (!window.supabaseClient) {
+        console.error('❌ Supabase client no disponible');
+        updateStats(); // Actualizar stats aunque no haya conexión
+        return;
+    }
 
     try {
+        console.log('🔄 Cargando archivos desde Supabase...');
+        
         const { data, error } = await window.supabaseClient
             .from('menu_images')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error en consulta:', error);
+            throw error;
+        }
         
         files = data || [];
+        console.log(`✅ Archivos cargados: ${files.length} total`);
+        console.log(`📊 Archivos activos: ${files.filter(f => f.active).length}`);
+        
         renderFiles();
         updateStats();
         
     } catch (error) {
-        console.error('Error cargando archivos:', error);
+        console.error('❌ Error cargando archivos:', error);
+        // Aún así actualizar las estadísticas con los archivos que tengamos
+        updateStats();
+        
+        // Mostrar mensaje de error al usuario si es crítico
+        if (error.message && !error.message.includes('permission')) {
+            console.warn('⚠️ Error al cargar archivos, pero continuando...');
+        }
     }
 }
 
@@ -331,10 +350,24 @@ function renderFiles() {
 // Actualizar estadísticas
 function updateStats() {
     const total = files.length;
-    const active = files.filter(file => file.active).length;
+    const active = files.filter(file => file.active !== false).length; // Considerar undefined como activo
     
-    document.getElementById('totalImages').textContent = total;
-    document.getElementById('activeImages').textContent = active;
+    const totalElement = document.getElementById('totalImages');
+    const activeElement = document.getElementById('activeImages');
+    
+    if (totalElement) {
+        totalElement.textContent = total;
+        console.log(`📊 Total actualizado: ${total}`);
+    } else {
+        console.warn('⚠️ Elemento totalImages no encontrado');
+    }
+    
+    if (activeElement) {
+        activeElement.textContent = active;
+        console.log(`📊 Activos actualizados: ${active}`);
+    } else {
+        console.warn('⚠️ Elemento activeImages no encontrado');
+    }
 }
 
 // Actualizar duración
@@ -399,6 +432,12 @@ async function deleteFile(id) {
     }
 }
 
+// Recargar archivos manualmente
+async function reloadFiles() {
+    console.log('🔄 Recargando archivos manualmente...');
+    await loadFiles();
+}
+
 // Forzar actualización del display
 async function forceDisplayRefresh() {
     if (!window.supabaseClient) {
@@ -443,21 +482,28 @@ async function forceDisplayRefresh() {
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Inicializando aplicación...');
+    
     // Esperar a que se cargue la autenticación
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Verificar autenticación
     if (window.authManager && window.authManager.isAuthenticated()) {
+        console.log('✅ Usuario autenticado');
         displayUserInfo();
         
         const success = await checkSupabase();
+        console.log(`📡 Supabase disponible: ${success}`);
+        
         if (success) {
             await loadFiles();
         } else {
+            console.warn('⚠️ Supabase no disponible, mostrando estado vacío');
             renderFiles();
             updateStats();
         }
     } else {
+        console.log('❌ Usuario no autenticado, redirigiendo...');
         // Si no está autenticado, redirigir al login
         window.location.href = 'login.html';
     }
