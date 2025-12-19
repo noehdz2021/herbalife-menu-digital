@@ -1,5 +1,7 @@
-// Usar la instancia global de Supabase
-const supabase = window.supabaseClient;
+// Función helper para obtener el cliente de Supabase
+function getSupabaseClient() {
+    return window.supabaseClient;
+}
 
 // Clase para manejar la autenticación
 class AuthManager {
@@ -28,6 +30,11 @@ class AuthManager {
 
     async login(email, password) {
         try {
+            const supabase = getSupabaseClient();
+            if (!supabase) {
+                throw new Error('Supabase no está disponible');
+            }
+            
             // Buscar usuario en la base de datos
             const { data: users, error } = await supabase
                 .from('admin_users')
@@ -87,11 +94,14 @@ class AuthManager {
     async logout() {
         try {
             if (this.sessionToken) {
-                // Eliminar sesión de la base de datos
-                await supabase
-                    .from('admin_sessions')
-                    .delete()
-                    .eq('token', this.sessionToken);
+                const supabase = getSupabaseClient();
+                if (supabase) {
+                    // Eliminar sesión de la base de datos
+                    await supabase
+                        .from('admin_sessions')
+                        .delete()
+                        .eq('token', this.sessionToken);
+                }
             }
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
@@ -111,6 +121,11 @@ class AuthManager {
 
     async validateSession(token) {
         try {
+            const supabase = getSupabaseClient();
+            if (!supabase) {
+                return false;
+            }
+            
             const { data: sessions, error } = await supabase
                 .from('admin_sessions')
                 .select('*')
