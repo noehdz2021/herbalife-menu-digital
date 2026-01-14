@@ -4,8 +4,8 @@
 // Clase para gestionar el display del menú
 class MenuDisplay {
     constructor() {
-        this.images = [];
-        this.currentIndex = 0;
+        this.images = []; // Pool expandido y mezclado
+        this.currentPoolIndex = 0; // Índice actual en el pool mezclado
         this.currentImage = null; // Rastrear la imagen actual
         this.transitionTimeout = null;
         this.timeIntervalId = null;
@@ -65,40 +65,25 @@ class MenuDisplay {
             video.alt = imageData.title;
             video.autoplay = true;
             video.muted = true;
-            video.loop = false; // Cambiar a false para evitar repetición infinita
+            video.loop = false; // No usar loop, las repeticiones están en el pool mezclado
             video.style.width = '100%';
             video.style.height = '100%';
             
             // Detectar formato y aplicar ajuste inteligente para videos
             this.applySmartFitVideo(video, imageData.src);
             
-            // Múltiples eventos para asegurar que se detecte el final del video
-            video.addEventListener('ended', () => {
-                console.log('🎥 Video terminado, pasando al siguiente...');
+            // Manejar el final del video - simplemente pasar al siguiente
+            // Las repeticiones ya están en el pool mezclado
+            const handleVideoEnd = () => {
+                console.log(`🎥 Video terminado: ${imageData.title}, pasando al siguiente...`);
                 this.nextSlide();
-            });
+            };
             
-            video.addEventListener('timeupdate', () => {
-                // Verificar si el video está cerca del final
-                if (video.duration && video.currentTime >= video.duration - 0.1) {
-                    console.log('🎥 Video cerca del final, pasando al siguiente...');
-                    this.nextSlide();
-                }
-            });
+            // Evento principal: cuando el video termina
+            video.addEventListener('ended', handleVideoEnd);
             
-            // Fallback: timer basado en la duración del video
-            video.addEventListener('loadedmetadata', () => {
-                if (video.duration && video.duration > 0) {
-                    console.log(`🎥 Video cargado: ${video.duration}s`);
-                    // Programar cambio después de la duración del video + 0.5s de margen
-                    setTimeout(() => {
-                        if (video.parentNode) { // Verificar que el video aún esté en el DOM
-                            console.log('🎥 Timer de video expirado, pasando al siguiente...');
-                            this.nextSlide();
-                        }
-                    }, (video.duration * 1000) + 500);
-                }
-            });
+            // Remover el event listener de timeupdate que causaba problemas
+            // El evento 'ended' es suficiente para detectar cuando termina el video
             
             container.appendChild(video);
         } else {
@@ -284,13 +269,23 @@ class MenuDisplay {
                 throw error;
             }
             
-            // Guardar las imágenes originales sin duplicar
-            this.images = (data || []).map(img => ({
+            // Guardar las imágenes originales
+            const originalImages = (data || []).map(img => ({
                 ...img,
-                duration: parseInt(img.duration) || 5, // Asegurar que sea un número entero
-                repeat: parseInt(img.repeat) || 1, // Asegurar que sea un número entero
-                remainingRepeats: parseInt(img.repeat) || 1 // Contador de repeticiones restantes
+                duration: parseInt(img.duration) || 5,
+                repeat: parseInt(img.repeat) || 1
             }));
+            
+            // Crear pool expandido: cada imagen aparece 'repeat' veces
+            this.images = [];
+            originalImages.forEach(img => {
+                for (let i = 0; i < img.repeat; i++) {
+                    this.images.push({ ...img }); // Crear copia para cada repetición
+                }
+            });
+            
+            // Mezclar el pool aleatoriamente (algoritmo Fisher-Yates)
+            this.shuffleImages();
             
             console.log(`📊 Imágenes cargadas con duraciones:`, this.images.map(img => ({
                 title: img.title,
@@ -317,6 +312,7 @@ class MenuDisplay {
             const j = Math.floor(Math.random() * (i + 1));
             [this.images[i], this.images[j]] = [this.images[j], this.images[i]];
         }
+        console.log(`🔀 Pool mezclado: ${this.images.length} elementos`);
     }
 
     createPlaceholderImage() {
@@ -455,6 +451,9 @@ class MenuDisplay {
             clearTimeout(this.transitionTimeout);
         }
         
+        // Inicializar índice del pool
+        this.currentPoolIndex = 0;
+        
         // Mostrar imagen actual
         this.showCurrentSlide();
         
@@ -498,8 +497,17 @@ class MenuDisplay {
             this.transitionTimeout = null;
         }
         
-        // Seleccionar la primera imagen de forma aleatoria
-        this.currentImage = this.selectRandomImage();
+        // Si llegamos al final del pool, resetear y mezclar de nuevo
+        if (this.currentPoolIndex >= this.images.length) {
+            console.log('🔄 Pool agotado, mezclando de nuevo...');
+            this.shuffleImages();
+            this.currentPoolIndex = 0;
+        }
+        
+        // Obtener la imagen actual del pool mezclado
+        this.currentImage = this.images[this.currentPoolIndex];
+        this.currentPoolIndex++;
+        
         const activeSlide = document.getElementById(this.currentSlideId);
         const contentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
@@ -516,6 +524,8 @@ class MenuDisplay {
         document.getElementById('slide2').classList.remove('active');
         activeSlide.classList.add('active');
         
+        console.log(`📺 Mostrando: ${this.currentImage.title} (${this.currentPoolIndex}/${this.images.length} en pool)`);
+        
         // Programar la siguiente transición solo para imágenes (los videos manejan su propia duración)
         if (this.currentImage && this.currentImage.file_type !== 'video') {
             this.scheduleNextTransition();
@@ -531,8 +541,16 @@ class MenuDisplay {
         
         if (this.images.length <= 1) return;
         
-        // Seleccionar la siguiente imagen de forma aleatoria considerando repeticiones
-        this.currentImage = this.selectRandomImage();
+        // Si llegamos al final del pool, resetear y mezclar de nuevo
+        if (this.currentPoolIndex >= this.images.length) {
+            console.log('🔄 Pool agotado, mezclando de nuevo...');
+            this.shuffleImages();
+            this.currentPoolIndex = 0;
+        }
+        
+        // Obtener la siguiente imagen del pool mezclado
+        this.currentImage = this.images[this.currentPoolIndex];
+        this.currentPoolIndex++;
         
         // Alternar entre slide1 y slide2
         this.currentSlideId = this.currentSlideId === 'slide1' ? 'slide2' : 'slide1';
@@ -554,34 +572,26 @@ class MenuDisplay {
         document.getElementById('slide2').classList.remove('active');
         nextSlide.classList.add('active');
         
+        console.log(`📺 Siguiente: ${this.currentImage.title} (${this.currentPoolIndex}/${this.images.length} en pool)`);
+        
         // Programar la siguiente transición solo para imágenes (los videos manejan su propia duración)
         if (this.currentImage && this.currentImage.file_type !== 'video') {
             this.scheduleNextTransition();
         }
     }
 
+    // Esta función ya no se usa, pero la mantengo por compatibilidad
+    // Ahora usamos el pool mezclado directamente con currentPoolIndex
     selectRandomImage() {
-        // Crear un array de imágenes disponibles para selección
-        const availableImages = this.images.filter(img => img.remainingRepeats > 0);
-        
-        if (availableImages.length === 0) {
-            // Si no hay imágenes disponibles, resetear todas las repeticiones
-            console.log('🔄 Reseteando repeticiones de todas las imágenes');
-            this.images.forEach(img => {
-                img.remainingRepeats = img.repeat;
-            });
-            return this.selectRandomImage(); // Llamada recursiva
+        // Si llegamos al final del pool, resetear y mezclar de nuevo
+        if (this.currentPoolIndex >= this.images.length) {
+            console.log('🔄 Pool agotado, mezclando de nuevo...');
+            this.shuffleImages();
+            this.currentPoolIndex = 0;
         }
         
-        // Seleccionar una imagen aleatoria de las disponibles
-        const randomIndex = Math.floor(Math.random() * availableImages.length);
-        const selectedImage = availableImages[randomIndex];
-        
-        // Decrementar el contador de repeticiones
-        selectedImage.remainingRepeats--;
-        
-        console.log(`🎯 Seleccionada: ${selectedImage.title} (${selectedImage.duration}s, repeticiones restantes: ${selectedImage.remainingRepeats})`);
-        
+        const selectedImage = this.images[this.currentPoolIndex];
+        this.currentPoolIndex++;
         return selectedImage;
     }
 
@@ -685,7 +695,7 @@ class MenuDisplay {
 
     async restart() {
         this.pause();
-        this.currentIndex = 0;
+        this.currentPoolIndex = 0;
         this.currentSlideId = 'slide1';
         
         // Resetear slides
