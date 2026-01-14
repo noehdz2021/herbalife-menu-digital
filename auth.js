@@ -197,8 +197,23 @@ if (document.getElementById('loginForm')) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const email = document.getElementById('email').value;
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            errorMessage.textContent = 'Por favor ingresa un email válido';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        // Validar que la contraseña no esté vacía
+        if (!password || password.length === 0) {
+            errorMessage.textContent = 'Por favor ingresa tu contraseña';
+            errorMessage.style.display = 'block';
+            return;
+        }
 
         // Mostrar loading
         loginBtn.disabled = true;

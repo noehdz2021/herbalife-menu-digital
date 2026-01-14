@@ -66,6 +66,7 @@ async function uploadFiles() {
     const repeat = parseInt(document.getElementById('fileRepeat').value);
     const selectedFiles = fileInput.files;
 
+    // Validaciones de entrada
     if (selectedFiles.length === 0) {
         alert('Selecciona al menos un archivo');
         return;
@@ -76,13 +77,57 @@ async function uploadFiles() {
         return;
     }
 
+    // Validar duración (1-60 segundos)
+    if (isNaN(duration) || duration < 1 || duration > 60) {
+        alert('La duración debe estar entre 1 y 60 segundos');
+        return;
+    }
+
+    // Validar repetición (1-10 veces)
+    if (isNaN(repeat) || repeat < 1 || repeat > 10) {
+        alert('La repetición debe estar entre 1 y 10 veces');
+        return;
+    }
+
+    // Tipos MIME permitidos
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+    const maxImageSize = 10 * 1024 * 1024; // 10MB
+    const maxVideoSize = 100 * 1024 * 1024; // 100MB
+
     try {
         console.log('🔄 Iniciando subida de archivos...');
         
-        // Filtrar solo archivos válidos
-        const validFiles = Array.from(selectedFiles).filter(file => {
-            return file.type.startsWith('image/') || file.type.startsWith('video/');
-        });
+        // Validar y filtrar archivos válidos
+        const validFiles = [];
+        const invalidFiles = [];
+        
+        for (const file of selectedFiles) {
+            const isImage = allowedImageTypes.includes(file.type.toLowerCase());
+            const isVideo = allowedVideoTypes.includes(file.type.toLowerCase());
+            
+            if (!isImage && !isVideo) {
+                invalidFiles.push(`${file.name}: Tipo de archivo no permitido (${file.type || 'desconocido'})`);
+                continue;
+            }
+            
+            const maxSize = isImage ? maxImageSize : maxVideoSize;
+            if (file.size > maxSize) {
+                const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(0);
+                invalidFiles.push(`${file.name}: Tamaño excede el límite de ${maxSizeMB}MB`);
+                continue;
+            }
+            
+            validFiles.push(file);
+        }
+        
+        // Mostrar errores si hay archivos inválidos
+        if (invalidFiles.length > 0) {
+            alert('Algunos archivos no se pueden subir:\n\n' + invalidFiles.join('\n'));
+            if (validFiles.length === 0) {
+                return; // No hay archivos válidos
+            }
+        }
         
         const totalFiles = validFiles.length;
         let uploadedCount = 0;
@@ -364,17 +409,32 @@ function updateStats() {
 async function updateDuration(id, duration) {
     if (!window.supabaseClient) return;
     
+    // Validar rango (1-60 segundos)
+    const durationValue = parseInt(duration);
+    if (isNaN(durationValue) || durationValue < 1 || durationValue > 60) {
+        alert('La duración debe estar entre 1 y 60 segundos');
+        // Restaurar valor anterior
+        const file = files.find(f => f.id === id);
+        if (file) {
+            const input = document.querySelector(`input[onchange*="updateDuration(${id}"]`);
+            if (input) input.value = file.duration;
+        }
+        return;
+    }
+    
     try {
         await window.supabaseClient
             .from('menu_images')
-            .update({ duration: parseInt(duration) })
+            .update({ duration: durationValue })
             .eq('id', id);
         
         const file = files.find(f => f.id === id);
-        if (file) file.duration = parseInt(duration);
+        if (file) file.duration = durationValue;
         
+        console.log(`✅ Duración actualizada: ${durationValue}s`);
     } catch (error) {
         console.error('Error actualizando duración:', error);
+        alert('Error al actualizar la duración: ' + error.message);
     }
 }
 
@@ -382,17 +442,32 @@ async function updateDuration(id, duration) {
 async function updateRepeat(id, repeat) {
     if (!window.supabaseClient) return;
     
+    // Validar rango (1-10 veces)
+    const repeatValue = parseInt(repeat);
+    if (isNaN(repeatValue) || repeatValue < 1 || repeatValue > 10) {
+        alert('La repetición debe estar entre 1 y 10 veces');
+        // Restaurar valor anterior
+        const file = files.find(f => f.id === id);
+        if (file) {
+            const input = document.querySelector(`input[onchange*="updateRepeat(${id}"]`);
+            if (input) input.value = file.repeat;
+        }
+        return;
+    }
+    
     try {
         await window.supabaseClient
             .from('menu_images')
-            .update({ repeat: parseInt(repeat) })
+            .update({ repeat: repeatValue })
             .eq('id', id);
         
         const file = files.find(f => f.id === id);
-        if (file) file.repeat = parseInt(repeat);
+        if (file) file.repeat = repeatValue;
         
+        console.log(`✅ Repetición actualizada: ${repeatValue}x`);
     } catch (error) {
         console.error('Error actualizando repetición:', error);
+        alert('Error al actualizar la repetición: ' + error.message);
     }
 }
 

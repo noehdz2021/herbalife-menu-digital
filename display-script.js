@@ -1,6 +1,5 @@
-// Credenciales de Supabase (para asegurar disponibilidad)
-const SUPABASE_URL = 'https://tmfwggfraxvpbjnpttnx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtZndnZ2ZyYXh2cGJqbnB0dG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MTI0NDIsImV4cCI6MjA2ODE4ODQ0Mn0.Roojl7R6KXicFlSt17Bqp5Sa_nIpvwsQxdlZ6VtovSc';
+// Usar configuración centralizada de config.js
+// Las credenciales se obtienen de window.CONFIG
 
 // Clase para gestionar el display del menú
 class MenuDisplay {
@@ -237,9 +236,16 @@ class MenuDisplay {
         
         try {
             console.log('🔄 Creando cliente para display...');
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            // Usar CONFIG centralizado si está disponible, sino usar valores por defecto
+            const supabaseUrl = (window.CONFIG && window.CONFIG.SUPABASE_URL) || 'https://tmfwggfraxvpbjnpttnx.supabase.co';
+            const supabaseKey = (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtZndnZ2ZyYXh2cGJqbnB0dG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MTI0NDIsImV4cCI6MjA2ODE4ODQ0Mn0.Roojl7R6KXicFlSt17Bqp5Sa_nIpvwsQxdlZ6VtovSc';
+            
+            const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
             
             if (supabase) {
+                // Guardar en una propiedad de la clase para uso posterior
+                this.supabaseClient = supabase;
                 console.log('✅ Cliente creado exitosamente para display');
                 this.supabaseReady = true;
                 return;
@@ -248,14 +254,14 @@ class MenuDisplay {
             }
         } catch (error) {
             console.error('❌ Error creando cliente:', error);
-            supabase = null;
+            this.supabaseClient = null;
         }
         
         console.error('❌ No se pudo inicializar Supabase en display');
     }
 
     checkSupabaseReady() {
-        return this.supabaseReady && supabase;
+        return this.supabaseReady && this.supabaseClient;
     }
 
     async loadData() {
@@ -268,7 +274,7 @@ class MenuDisplay {
             console.log('🔄 Cargando datos del menú...');
             
             // Cargar imágenes desde Supabase
-            const { data, error } = await supabase
+            const { data, error } = await this.supabaseClient
                 .from('menu_images')
                 .select('*')
                 .eq('active', true)
@@ -338,7 +344,7 @@ class MenuDisplay {
             
             // Crear canal único para este display
             const channelId = `menu_display_${Date.now()}`;
-            this.realtimeChannel = supabase.channel(channelId);
+            this.realtimeChannel = this.supabaseClient.channel(channelId);
             
             // Suscribirse a cambios en tiempo real
             this.realtimeChannel
@@ -741,7 +747,7 @@ async function exportDisplayLogs() {
     }
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await window.menuDisplay.supabaseClient
             .from('menu_images')
             .select('*')
             .order('created_at', { ascending: false });
