@@ -134,14 +134,10 @@ El panel tiene dos pestañas en el sidebar:
 4. La URL debe verse así: `https://i.imgur.com/xxxxx.jpg` o `.mp4`
 5. **No uses** enlaces de álbum (`imgur.com/a/xxx`) – no funcionan en el display
 
-### **Google Drive:**
-- El sistema convierte automáticamente enlaces de Drive al formato directo
-- ⚠️ **Limitación:** Drive suele bloquear la carga desde otros sitios (CORS). Si la imagen no se ve, usa Imgur u otro servicio.
-
 ### **Formatos detectados automáticamente:**
 - **Video:** `.mp4`, `.webm`, `.ogg`, `.mov`, `.avi`, `.gifv`
 - **Imagen:** cualquier otra URL (jpg, png, gif, etc.)
-- Para enlaces sin extensión (ej. Drive), marca el checkbox **"Es video"** si corresponde
+- Si la URL no tiene extensión, marca el checkbox **"Es video"** cuando corresponda
 
 ## 💾 Optimización Supabase
 
@@ -214,8 +210,7 @@ El sistema funciona en:
 ### **Archivos no se muestran:**
 1. Verifica que estén marcados como "Activos"
 2. **Si usas URL:** usa el enlace **directo** (`i.imgur.com/xxx.jpg`), no el de álbum
-3. **Google Drive:** no suele funcionar por CORS; usa Imgur
-4. Revisa permisos de storage en Supabase (solo para archivos subidos)
+3. Revisa permisos de storage en Supabase (solo para archivos subidos)
 
 ### **Repetición no funciona:**
 1. Verifica que el valor esté entre 1-10
