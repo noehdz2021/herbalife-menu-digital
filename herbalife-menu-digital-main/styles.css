@@ -168,6 +168,34 @@ body {
     margin-bottom: 20px;
 }
 
+.url-section {
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 1px solid var(--border-color);
+}
+
+.url-hint {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin: -10px 0 15px;
+}
+
+.url-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.url-checkbox input {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
 .upload-section input[type="file"] {
     width: 100%;
     padding: 12px;
@@ -185,7 +213,8 @@ body {
 }
 
 .upload-section select,
-.upload-section input[type="text"] {
+.upload-section input[type="text"],
+.upload-section input[type="url"] {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
@@ -198,7 +227,8 @@ body {
 }
 
 .upload-section select:focus,
-.upload-section input[type="text"]:focus {
+.upload-section input[type="text"]:focus,
+.upload-section input[type="url"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.1);

@@ -17,6 +17,50 @@ function displayUserInfo() {
     }
 }
 
+// Comprimir imagen antes de subir (reduce Salida en caché)
+async function compressImage(file) {
+    if (file.type === 'image/gif') return file; // No comprimir GIF (animaciones)
+    
+    const maxWidth = (CONFIG && CONFIG.IMAGE_MAX_WIDTH) || 1920;
+    const quality = (CONFIG && CONFIG.IMAGE_QUALITY) || 0.85;
+    
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(img.src);
+            if (img.naturalWidth <= maxWidth && img.naturalHeight <= maxWidth && file.size < 300 * 1024) {
+                resolve(file);
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            let width = img.naturalWidth, height = img.naturalHeight;
+            if (width > maxWidth || height > maxWidth) {
+                if (width > height) {
+                    height = Math.round((height / width) * maxWidth);
+                    width = maxWidth;
+                } else {
+                    width = Math.round((width / height) * maxWidth);
+                    height = maxWidth;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+                if (blob && blob.size < file.size) {
+                    const name = file.name.replace(/\.(png|webp)$/i, '.jpg');
+                    resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
+                } else {
+                    resolve(file);
+                }
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => { URL.revokeObjectURL(img.src); resolve(file); };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 // Función para actualizar la barra de progreso
 function updateUploadProgress(current, total, fileName) {
     const progressBar = document.getElementById('uploadProgressBar');
@@ -147,27 +191,12 @@ async function uploadFiles() {
                 
                 console.log(`📤 Subiendo archivo: ${fileName} (${isImage ? 'imagen' : 'video'})`);
                 console.log(`📊 Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-                console.log(`📊 Tipo MIME: ${file.type}`);
                 
-                // Para imágenes, verificar si necesitamos preservar calidad
                 let fileToUpload = file;
                 if (isImage) {
-                    // Crear una copia del archivo con metadata preservada
-                    const originalName = file.name;
-                    const originalExtension = originalName.split('.').pop().toLowerCase();
-                    
-                    // Si es JPEG o PNG, intentar preservar calidad
-                    if (originalExtension === 'jpg' || originalExtension === 'jpeg' || originalExtension === 'png') {
-                        console.log(`🖼️ Preservando calidad de imagen: ${originalExtension.toUpperCase()}`);
-                        
-                        // Crear un nuevo archivo con el nombre original preservado
-                        const preservedFileName = `${Date.now()}_${i}_original.${originalExtension}`;
-                        fileToUpload = new File([file], preservedFileName, {
-                            type: file.type,
-                            lastModified: file.lastModified
-                        });
-                        fileName = preservedFileName;
-                    }
+                    fileToUpload = await compressImage(file);
+                    fileName = `${Date.now()}_${i}.${fileToUpload.name.split('.').pop()}`;
+                    console.log(`📊 Después de compresión: ${(fileToUpload.size / 1024).toFixed(0)} KB`);
                 }
                 
                 // Subir archivo con opciones para preservar calidad
@@ -275,6 +304,93 @@ async function uploadFiles() {
         }
         
         alert('Error al subir archivos: ' + error.message);
+    }
+}
+
+// Convertir URL de Google Drive a enlace directo
+function convertDriveUrl(url) {
+    const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]{20,})/);
+    if (!driveMatch) return url;
+    const fileId = driveMatch[1];
+    return `https://drive.google.com/uc?export=view&id=${fileId}`;
+}
+
+// Agregar por URL (no usa Supabase Storage - sin consumir Salida en caché)
+async function addByUrl() {
+    if (!window.supabaseClient) {
+        alert('Error: Base de datos no disponible');
+        return;
+    }
+    
+    const urlInput = document.getElementById('urlInput');
+    let url = urlInput.value.trim();
+    const title = document.getElementById('urlTitle').value.trim();
+    const category = document.getElementById('urlCategory').value;
+    const duration = parseInt(document.getElementById('urlDuration').value) || 5;
+    const repeat = parseInt(document.getElementById('urlRepeat').value) || 1;
+    
+    if (!url) {
+        alert('Ingresa la URL de la imagen o video');
+        return;
+    }
+    if (!title) {
+        alert('Ingresa un título');
+        return;
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert('La URL debe comenzar con http:// o https://');
+        return;
+    }
+    
+    // Detectar y convertir Google Drive automáticamente
+    if (url.includes('drive.google.com')) {
+        url = convertDriveUrl(url);
+        console.log('🔗 URL de Drive convertida a enlace directo');
+    }
+    
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+    const isVideoByUrl = videoExtensions.some(ext => url.toLowerCase().includes(ext));
+    const isVideoByCheckbox = document.getElementById('urlIsVideo').checked;
+    const isVideo = isVideoByUrl || isVideoByCheckbox;
+    
+    const urlBtn = document.getElementById('urlBtn');
+    urlBtn.disabled = true;
+    urlBtn.textContent = 'Agregando...';
+    
+    try {
+        const fileData = {
+            title,
+            category,
+            src: url,
+            duration: isVideo ? 10 : Math.min(60, Math.max(1, duration)),
+            repeat: Math.min(10, Math.max(1, repeat)),
+            active: true,
+            file_type: isVideo ? 'video' : 'image'
+        };
+        
+        const { error } = await window.supabaseClient
+            .from('menu_images')
+            .insert([fileData])
+            .select();
+        
+        if (error) {
+            if (error.message.includes('file_type')) {
+                delete fileData.file_type;
+                await window.supabaseClient.from('menu_images').insert([fileData]);
+            } else {
+                throw error;
+            }
+        }
+        
+        urlInput.value = '';
+        document.getElementById('urlTitle').value = '';
+        alert('✅ Agregado correctamente');
+        await loadFiles();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    } finally {
+        urlBtn.disabled = false;
+        urlBtn.textContent = 'Agregar por URL';
     }
 }
 

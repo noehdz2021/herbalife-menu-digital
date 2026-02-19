@@ -154,6 +154,10 @@ El sistema funciona en:
 - Colores corporativos de Herbalife
 - Sin elementos innecesarios
 
+## 🔗 Agregar por URL
+
+Para no consumir Salida en caché de Supabase: sube imágenes/videos a **ImgBB**, **Google Drive**, **Cloudinary**, etc. y pega el enlace directo en el panel. Solo se guarda la URL en la base de datos; las imágenes se cargan desde el servicio externo.
+
 ## 🐛 Solución de Problemas
 
 ### **Error de Conexión:**
