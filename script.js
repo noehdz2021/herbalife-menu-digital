@@ -348,7 +348,7 @@ async function addByUrl() {
         console.log('🔗 URL de Drive convertida a enlace directo');
     }
     
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.gifv'];
     const isVideoByUrl = videoExtensions.some(ext => url.toLowerCase().includes(ext));
     const isVideoByCheckbox = document.getElementById('urlIsVideo').checked;
     const isVideo = isVideoByUrl || isVideoByCheckbox;

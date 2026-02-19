@@ -52,13 +52,17 @@ class MenuDisplay {
         console.log('🎨 Fondo difuminado establecido con imagen:', imageSrc);
     }
 
-    // Función helper para crear elementos de media
+    // Misma lógica que admin: detectar video por file_type o por extensión en URL
+    _isVideo(item) {
+        if (item.file_type === 'video') return true;
+        const src = (item.src || '').toLowerCase();
+        return /\.(mp4|webm|ogg|mov|avi|gifv)(\?|$)/.test(src);
+    }
+
     createMediaElement(imageData, container) {
-        // Establecer fondo difuminado siempre (para imágenes y videos)
-        // Usa la misma imagen/video como fondo difuminado
         this.setBlurredBackground(container, imageData.src);
         
-        if (imageData.file_type === 'video') {
+        if (this._isVideo(imageData)) {
             // Crear elemento de video
             const video = document.createElement('video');
             video.src = imageData.src;
