@@ -49,7 +49,7 @@ remote-herbalife/
 
 ### **Funcionalidades:**
 - ✅ **Sistema de autenticación** completo y seguro
-- ✅ **Subida de imágenes y videos** con drag & drop
+- ✅ **Subida de archivos** (Supabase) o **Agregar por URL** (Imgur, etc.) - sin límite de Salida en caché
 - ✅ **Categorización:** Bebidas, Productos, Ofertas, Información
 - ✅ **Control de duración:** 1-60 segundos por imagen (videos usan duración natural)
 - ✅ **Reproducción automática de videos** en bucle
@@ -88,11 +88,26 @@ Abre `login.html` en tu navegador para acceder al sistema de autenticación.
 3. **Seguridad:** Todas las rutas administrativas están protegidas
 
 ### **Panel de Administración (`admin.html`):**
-1. **Subir archivos:** Selecciona imágenes o videos, categoría, título, duración (solo imágenes) y repetición
-2. **Editar configuración:** Usa los controles inline para ajustar duración y repetición (solo imágenes)
-3. **Ver pantalla:** Haz clic en "📺 Pantalla" para abrir la visualización
-4. **Eliminar:** Usa el botón 🗑️ para eliminar archivos
-5. **Cerrar sesión:** Usa el botón "🚪 Cerrar Sesión" para salir
+
+El panel tiene dos pestañas en el sidebar:
+
+#### **🔗 Agregar por URL** (recomendado - no consume Supabase)
+1. Sube tu imagen/video a **Imgur** (u otro servicio)
+2. Obtén el **enlace directo** (ej: `https://i.imgur.com/xxxxx.jpg`)
+3. Pega la URL en el campo, completa título, categoría, duración y repetición
+4. Si es video, marca el checkbox "Es video"
+5. Clic en "Agregar por URL"
+
+#### **📤 Subir archivo** (usa Supabase Storage)
+1. Selecciona imágenes o videos desde tu PC
+2. Completa categoría, título, duración (solo imágenes) y repetición
+3. Clic en "Subir"
+
+#### **Otras acciones:**
+- **Ver pantalla:** Clic en "📺 Pantalla"
+- **Actualizar display:** Clic en "🔄 Actualizar Display" (para refrescar pantallas remotas)
+- **Eliminar:** Botón 🗑️ en cada tarjeta
+- **Editar:** Duración y repetición inline (solo imágenes)
 
 ### **Pantalla de Visualización (`display.html`):**
 - **Pantalla completa:** Las imágenes y videos cubren toda la pantalla
@@ -100,6 +115,41 @@ Abre `login.html` en tu navegador para acceder al sistema de autenticación.
 - **Reproducción automática:** Los videos se reproducen automáticamente en bucle
 - **Repetición aleatoria:** Los archivos aparecen de forma aleatoria según su configuración
 - **Transiciones suaves:** Cambios automáticos con efectos de fade
+- **Adaptación al monitor:** Imágenes y videos (URL o Supabase) se ajustan automáticamente (contain/cover) según el formato
+
+## 🔗 Agregar por URL - Guía completa
+
+### **Servicios recomendados (imágenes + videos):**
+
+| Servicio | URL directa | Imágenes | Videos | Gratis |
+|----------|-------------|----------|--------|--------|
+| **Imgur** | ✅ | ✅ | ✅ (máx. 3 min) | Sí |
+| **Cloudinary** | ✅ | ✅ | ✅ | 25 créditos/mes |
+| **Catbox.moe** | ✅ | ✅ | ✅ | Sí |
+
+### **Cómo obtener el enlace directo en Imgur:**
+1. Sube la imagen/video en [imgur.com](https://imgur.com)
+2. Abre la imagen haciendo clic sobre ella
+3. Clic derecho → **"Copiar dirección de imagen"**
+4. La URL debe verse así: `https://i.imgur.com/xxxxx.jpg` o `.mp4`
+5. **No uses** enlaces de álbum (`imgur.com/a/xxx`) – no funcionan en el display
+
+### **Google Drive:**
+- El sistema convierte automáticamente enlaces de Drive al formato directo
+- ⚠️ **Limitación:** Drive suele bloquear la carga desde otros sitios (CORS). Si la imagen no se ve, usa Imgur u otro servicio.
+
+### **Formatos detectados automáticamente:**
+- **Video:** `.mp4`, `.webm`, `.ogg`, `.mov`, `.avi`, `.gifv`
+- **Imagen:** cualquier otra URL (jpg, png, gif, etc.)
+- Para enlaces sin extensión (ej. Drive), marca el checkbox **"Es video"** si corresponde
+
+## 💾 Optimización Supabase
+
+Para reducir el uso del plan gratuito:
+- **Agregar por URL** no consume Salida en caché (las imágenes se cargan desde Imgur, etc.)
+- Refresh periódico desactivado (solo Realtime)
+- Debounce en subidas múltiples
+- Compresión opcional al subir archivos (ver `config.js`)
 
 ## ⚙️ Configuración
 
@@ -163,8 +213,9 @@ El sistema funciona en:
 
 ### **Archivos no se muestran:**
 1. Verifica que estén marcados como "Activos"
-2. Revisa permisos de storage en Supabase
-3. Comprueba formato de archivo (JPG, PNG, MP4, WebM, etc.)
+2. **Si usas URL:** usa el enlace **directo** (`i.imgur.com/xxx.jpg`), no el de álbum
+3. **Google Drive:** no suele funcionar por CORS; usa Imgur
+4. Revisa permisos de storage en Supabase (solo para archivos subidos)
 
 ### **Repetición no funciona:**
 1. Verifica que el valor esté entre 1-10
