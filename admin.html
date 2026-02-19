@@ -35,7 +35,11 @@
 
         <div class="main-content">
             <div class="sidebar">
-                <div class="upload-section">
+                <div class="upload-tabs">
+                    <button class="upload-tab" onclick="showUploadTab('file')" id="tabFile">📤 Subir archivo</button>
+                    <button class="upload-tab active" onclick="showUploadTab('url')" id="tabUrl">🔗 Agregar por URL</button>
+                </div>
+                <div class="upload-section" id="sectionFile" style="display:none">
                     <h3>📤 Subir Archivos</h3>
                     <input type="file" id="fileInput" accept="image/*,video/*" multiple>
                     <select id="fileCategory">
@@ -69,6 +73,30 @@
                         <div id="uploadFileName" class="upload-file-name"></div>
                     </div>
                 </div>
+                <div class="upload-section url-section" id="sectionUrl">
+                    <h3>🔗 Agregar por URL</h3>
+                    <p class="url-hint">Pega el enlace. Si es de Google Drive, se convierte automáticamente. No usa Supabase Storage.</p>
+                    <input type="url" id="urlInput" placeholder="https://drive.google.com/... o https://ejemplo.com/imagen.jpg">
+                    <label class="url-checkbox"><input type="checkbox" id="urlIsVideo"> Es video (marca si el enlace de Drive es un video)</label>
+                    <select id="urlCategory">
+                        <option value="bebidas">Bebidas</option>
+                        <option value="productos">Productos</option>
+                        <option value="ofertas">Ofertas</option>
+                        <option value="informacion">Información</option>
+                    </select>
+                    <input type="text" id="urlTitle" placeholder="Título">
+                    <div class="duration-input">
+                        <label>Duración (solo imágenes):</label>
+                        <input type="number" id="urlDuration" min="1" max="60" value="5">
+                    </div>
+                    <div class="repeat-input">
+                        <label>Repetir:</label>
+                        <input type="number" id="urlRepeat" min="1" max="10" value="1">
+                    </div>
+                    <button class="btn btn-primary btn-url" id="urlBtn" onclick="addByUrl()">
+                        Agregar por URL
+                    </button>
+                </div>
             </div>
 
             <div class="content">
@@ -93,6 +121,14 @@
         </div>
     </div>
 
+    <script>
+        function showUploadTab(tab) {
+            document.getElementById('sectionFile').style.display = tab === 'file' ? 'block' : 'none';
+            document.getElementById('sectionUrl').style.display = tab === 'url' ? 'block' : 'none';
+            document.getElementById('tabFile').classList.toggle('active', tab === 'file');
+            document.getElementById('tabUrl').classList.toggle('active', tab === 'url');
+        }
+    </script>
     <script src="config.js?v=1.1"></script>
     <script src="init.js?v=1.3"></script>
     <script src="auth.js?v=1.3"></script>
@@ -111,4 +147,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

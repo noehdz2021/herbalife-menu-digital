@@ -151,6 +151,37 @@ body {
     }
 }
 
+/* Tabs en sidebar */
+.upload-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.upload-tab {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: var(--transition);
+}
+
+.upload-tab:hover {
+    color: var(--text-color);
+}
+
+.upload-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
 /* Sidebar minimalista */
 .sidebar {
     background: var(--card-background);
@@ -166,6 +197,33 @@ body {
     font-weight: 600;
     color: var(--text-color);
     margin-bottom: 20px;
+}
+
+.url-section {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.url-hint {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin: -10px 0 15px;
+}
+
+.url-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.url-checkbox input {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
 }
 
 .upload-section input[type="file"] {
@@ -185,7 +243,8 @@ body {
 }
 
 .upload-section select,
-.upload-section input[type="text"] {
+.upload-section input[type="text"],
+.upload-section input[type="url"] {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
@@ -198,7 +257,8 @@ body {
 }
 
 .upload-section select:focus,
-.upload-section input[type="text"]:focus {
+.upload-section input[type="text"]:focus,
+.upload-section input[type="url"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.1);
