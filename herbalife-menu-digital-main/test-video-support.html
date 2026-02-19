@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Soporte de Videos - Herbalife</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #00A651;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #007A3D;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 Prueba de Soporte de Videos</h1>
+    
+    <div class="test-section">
+        <h2>1. Verificación de Navegador</h2>
+        <div id="browserSupport"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Prueba de Reproducción de Video</h2>
+        <p>Video de prueba (MP4):</p>
+        <div class="video-container">
+            <video id="testVideo" controls>
+                <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4">
+                Tu navegador no soporta videos.
+            </video>
+        </div>
+        <button onclick="testVideoPlayback()">Probar Reproducción</button>
+        <div id="videoTestResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Prueba de Formatos Soportados</h2>
+        <div id="formatSupport"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Prueba de API de Video</h2>
+        <button onclick="testVideoAPI()">Probar API de Video</button>
+        <div id="apiTestResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Instrucciones de Configuración</h2>
+        <ol>
+            <li><strong>Ejecutar migración de base de datos:</strong>
+                <ul>
+                    <li>Ir a Supabase Dashboard</li>
+                    <li>Abrir SQL Editor</li>
+                    <li>Ejecutar el contenido de <code>add-file-type-column.sql</code></li>
+                </ul>
+            </li>
+            <li><strong>Probar subida de videos:</strong>
+                <ul>
+                    <li>Ir al panel de administración</li>
+                    <li>Seleccionar archivos de video</li>
+                    <li>Verificar que aparezcan con badge 🎥</li>
+                </ul>
+            </li>
+            <li><strong>Probar reproducción en display:</strong>
+                <ul>
+                    <li>Abrir la pantalla de display</li>
+                    <li>Verificar que los videos se reproduzcan automáticamente</li>
+                    <li>Verificar transición al finalizar</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <script>
+        // Verificar soporte del navegador
+        function checkBrowserSupport() {
+            const result = document.getElementById('browserSupport');
+            const video = document.createElement('video');
+            
+            let support = [];
+            
+            // Verificar soporte básico de video
+            if (video.canPlayType) {
+                support.push('✅ Soporte básico de video HTML5');
+            } else {
+                support.push('❌ No hay soporte básico de video');
+            }
+            
+            // Verificar formatos específicos
+            if (video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) {
+                support.push('✅ Soporte MP4 (H.264)');
+            } else {
+                support.push('⚠️ Soporte limitado MP4');
+            }
+            
+            if (video.canPlayType('video/webm; codecs="vp8, vorbis"')) {
+                support.push('✅ Soporte WebM');
+            } else {
+                support.push('⚠️ No hay soporte WebM');
+            }
+            
+            // Verificar autoplay
+            if (video.autoplay !== undefined) {
+                support.push('✅ Soporte autoplay');
+            } else {
+                support.push('❌ No hay soporte autoplay');
+            }
+            
+            // Verificar muted
+            if (video.muted !== undefined) {
+                support.push('✅ Soporte muted');
+            } else {
+                support.push('❌ No hay soporte muted');
+            }
+            
+            result.innerHTML = support.map(item => `<div class="status ${item.includes('✅') ? 'success' : item.includes('⚠️') ? 'warning' : 'error'}">${item}</div>`).join('');
+        }
+        
+        // Probar reproducción de video
+        function testVideoPlayback() {
+            const video = document.getElementById('testVideo');
+            const result = document.getElementById('videoTestResult');
+            
+            try {
+                video.play().then(() => {
+                    result.innerHTML = '<div class="status success">✅ Reproducción exitosa</div>';
+                }).catch(error => {
+                    result.innerHTML = `<div class="status error">❌ Error de reproducción: ${error.message}</div>`;
+                });
+            } catch (error) {
+                result.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Verificar formatos soportados
+        function checkFormatSupport() {
+            const result = document.getElementById('formatSupport');
+            const video = document.createElement('video');
+            
+            const formats = [
+                { type: 'video/mp4', codec: 'avc1.42E01E, mp4a.40.2', name: 'MP4 (H.264)' },
+                { type: 'video/webm', codec: 'vp8, vorbis', name: 'WebM (VP8)' },
+                { type: 'video/webm', codec: 'vp9', name: 'WebM (VP9)' },
+                { type: 'video/ogg', codec: 'theora, vorbis', name: 'OGG' }
+            ];
+            
+            let support = [];
+            
+            formats.forEach(format => {
+                const canPlay = video.canPlayType(`${format.type}; codecs="${format.codec}"`);
+                let status = '';
+                
+                switch(canPlay) {
+                    case 'probably':
+                        status = '✅ Soporte completo';
+                        break;
+                    case 'maybe':
+                        status = '⚠️ Soporte posible';
+                        break;
+                    default:
+                        status = '❌ Sin soporte';
+                        break;
+                }
+                
+                support.push(`${status} ${format.name}`);
+            });
+            
+            result.innerHTML = support.map(item => `<div class="status ${item.includes('✅') ? 'success' : item.includes('⚠️') ? 'warning' : 'error'}">${item}</div>`).join('');
+        }
+        
+        // Probar API de video
+        function testVideoAPI() {
+            const result = document.getElementById('apiTestResult');
+            const video = document.createElement('video');
+            
+            let tests = [];
+            
+            // Probar propiedades
+            tests.push(`✅ src: ${video.src !== undefined}`);
+            tests.push(`✅ autoplay: ${video.autoplay !== undefined}`);
+            tests.push(`✅ muted: ${video.muted !== undefined}`);
+            tests.push(`✅ loop: ${video.loop !== undefined}`);
+            tests.push(`✅ controls: ${video.controls !== undefined}`);
+            tests.push(`✅ width: ${video.width !== undefined}`);
+            tests.push(`✅ height: ${video.height !== undefined}`);
+            
+            // Probar métodos
+            tests.push(`✅ play(): ${typeof video.play === 'function'}`);
+            tests.push(`✅ pause(): ${typeof video.pause === 'function'}`);
+            tests.push(`✅ load(): ${typeof video.load === 'function'}`);
+            
+            // Probar eventos
+            tests.push(`✅ addEventListener: ${typeof video.addEventListener === 'function'}`);
+            
+            result.innerHTML = tests.map(item => `<div class="status success">${item}</div>`).join('');
+        }
+        
+        // Ejecutar pruebas al cargar
+        window.addEventListener('load', () => {
+            checkBrowserSupport();
+            checkFormatSupport();
+        });
+    </script>
+</body>
+</html> 

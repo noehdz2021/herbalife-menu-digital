@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Herbalife - Panel de Administración</title>
+    <link rel="stylesheet" href="styles.css?v=1.2">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <h1>🌿 Herbalife</h1>
+                <span class="user-info" id="userInfo"></span>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
+                    📺 Pantalla
+                </button>
+                <button class="btn btn-success" onclick="forceDisplayRefresh()">
+                    🔄 Actualizar Display
+                </button>
+                <button class="btn btn-secondary" onclick="reloadFiles()" title="Recargar archivos">
+                    🔃 Recargar
+                </button>
+                <button class="btn btn-secondary" onclick="logout()">
+                    🚪 Cerrar Sesión
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <h3>📤 Subir Archivos</h3>
+                    <input type="file" id="fileInput" accept="image/*,video/*" multiple>
+                    <select id="fileCategory">
+                        <option value="bebidas">Bebidas</option>
+                        <option value="productos">Productos</option>
+                        <option value="ofertas">Ofertas</option>
+                        <option value="informacion">Información</option>
+                    </select>
+                    <input type="text" id="fileTitle" placeholder="Título">
+                    <div class="duration-input">
+                        <label>Duración (solo para imágenes):</label>
+                        <input type="number" id="fileDuration" min="1" max="60" value="5">
+                    </div>
+                    <div class="repeat-input">
+                        <label>Repetir:</label>
+                        <input type="number" id="fileRepeat" min="1" max="10" value="1">
+                    </div>
+                    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">
+                        Subir
+                    </button>
+                    
+                    <!-- Barra de progreso -->
+                    <div id="uploadProgress" class="upload-progress-container">
+                        <div class="upload-progress-header">
+                            <span id="uploadStatus" class="upload-status">Subiendo...</span>
+                            <span id="uploadPercent" class="upload-percent">0%</span>
+                        </div>
+                        <div class="upload-progress-bar-container">
+                            <div id="uploadProgressBar" class="upload-progress-bar"></div>
+                        </div>
+                        <div id="uploadFileName" class="upload-file-name"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total</h3>
+                        <p class="stat-number" id="totalImages">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Activas</h3>
+                        <p class="stat-number" id="activeImages">0</p>
+                    </div>
+                </div>
+
+                <div class="images-grid" id="imagesGrid">
+                    <div class="no-images">
+                        <h3>📷 Sin imágenes</h3>
+                        <p>Sube tu primera imagen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=1.1"></script>
+    <script src="init.js?v=1.3"></script>
+    <script src="auth.js?v=1.3"></script>
+    <script src="script.js?v=1.3"></script>
+    <script>
+        // Verificar que los estilos se apliquen correctamente
+        document.addEventListener('DOMContentLoaded', function() {
+            const refreshButton = document.querySelector('.btn-success');
+            if (refreshButton) {
+                console.log('✅ Botón de actualización encontrado');
+                console.log('Clases del botón:', refreshButton.className);
+                console.log('Estilos aplicados:', window.getComputedStyle(refreshButton).backgroundColor);
+            } else {
+                console.error('❌ Botón de actualización no encontrado');
+            }
+        });
+    </script>
+</body>
+</html> 
