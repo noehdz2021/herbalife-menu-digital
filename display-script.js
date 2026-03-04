@@ -247,10 +247,10 @@ class MenuDisplay {
         try {
             console.log('🔄 Cargando datos del menú...');
             
-            // Cargar imágenes desde Supabase
+            // Cargar imágenes desde Supabase (repeat = veces que aparece en el pool)
             const { data, error } = await this.supabaseClient
                 .from('menu_images')
-                .select('*')
+                .select('id, title, category, src, duration, repeat, active, created_at, file_type')
                 .eq('active', true)
                 .order('created_at', { ascending: false });
             
@@ -258,15 +258,15 @@ class MenuDisplay {
                 throw error;
             }
             
-            // Duración y frecuencia: si no existe o es < 1, se usa 1 (una sola vez en el pool)
+            // Usar columna 'repeat': si es nulo o < 1, por defecto 1
             const originalImages = (data || []).map(img => {
                 const duration = parseInt(img.duration) || 5;
-                const raw = parseInt(img.frecuencia) || parseInt(img.repetitions) || 1;
-                const frecuencia = (raw < 1 || !Number.isFinite(raw)) ? 1 : raw;
+                const raw = parseInt(img.repeat, 10);
+                const frecuencia = (raw < 1 || Number.isNaN(raw)) ? 1 : raw;
                 return { ...img, duration, frecuencia };
             });
             
-            // Pool: cada elemento se añade 'frecuencia' veces (2 → dos veces, 3 → tres, etc.)
+            // Pool: cada elemento se añade 'frecuencia' veces (repeat: 4 → 4 entradas)
             this.images = [];
             originalImages.forEach(img => {
                 for (let i = 0; i < img.frecuencia; i++) {
@@ -274,9 +274,8 @@ class MenuDisplay {
                 }
             });
             
-            // Mezcla DESPUÉS de duplicar para que las repeticiones no salgan seguidas
+            console.log(`📊 Validando Pool: Originales: ${(data || []).length}, Total con repeticiones: ${this.images.length}`);
             this.shuffleImages();
-            
             console.log(`✅ Cargadas ${this.images.length} imágenes`);
             
             // Si no hay imágenes, crear una imagen de placeholder
