@@ -619,46 +619,58 @@ async function reloadFiles() {
     await loadFiles();
 }
 
-// Forzar actualización del display
+// Forzar actualización del display vía Realtime (UPDATE dispara evento que el Display escucha)
 async function forceDisplayRefresh() {
     if (!window.supabaseClient) {
         alert('Error: Base de datos no disponible');
         return;
     }
-    
     try {
         console.log('🔄 Forzando actualización del display...');
-        
-        // Crear un registro temporal para activar la suscripción en tiempo real
-        const tempData = {
-            title: 'Actualización forzada',
-            category: 'sistema',
-            src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8L3N2Zz4=',
-            duration: 1,
-            repeat: 1,
-            active: false // No se mostrará en el display
-        };
-        
-        // Insertar y eliminar inmediatamente para activar la suscripción
-        const { data: inserted } = await window.supabaseClient
-            .from('menu_images')
-            .insert([tempData])
-            .select();
-        
-        if (inserted && inserted[0]) {
-            await window.supabaseClient
-                .from('menu_images')
-                .delete()
-                .eq('id', inserted[0].id);
-        }
-        
-        console.log('✅ Señal de actualización enviada al display');
+        const { error } = await window.supabaseClient
+            .from('display_control')
+            .update({ last_refresh: new Date().toISOString() })
+            .eq('id', 1);
+        if (error) throw error;
+        console.log('✅ Señal de actualización enviada (UPDATE display_control)');
         alert('✅ Display actualizado');
-        
-    } catch (error) {
-        console.error('❌ Error forzando actualización:', error);
-        alert('Error forzando actualización: ' + error.message);
+    } catch (err) {
+        console.warn('Fallback: display_control no disponible, usando INSERT/DELETE en menu_images', err);
+        try {
+            const tempData = {
+                title: 'Actualización forzada',
+                category: 'sistema',
+                src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8L3N2Zz4=',
+                duration: 1,
+                repeat: 1,
+                active: false
+            };
+            const { data: inserted } = await window.supabaseClient.from('menu_images').insert([tempData]).select();
+            if (inserted && inserted[0]) {
+                await window.supabaseClient.from('menu_images').delete().eq('id', inserted[0].id);
+            }
+            alert('✅ Display actualizado');
+        } catch (e) {
+            console.error('❌ Error forzando actualización:', e);
+            alert('Error forzando actualización: ' + (e.message || e));
+        }
     }
+}
+
+// Envía BROADCAST para que el Display haga location.reload() (recarga completa)
+function sendDisplayReload() {
+    if (!window.supabaseClient) return;
+    const ch = window.supabaseClient.channel('herbalife_display');
+    ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+            ch.send({ type: 'broadcast', event: 'cmd', payload: { type: 'RELOAD' } })
+                .then(() => {
+                    console.log('✅ Broadcast RELOAD enviado al display');
+                    alert('✅ Señal de recarga enviada (el display se recargará)');
+                })
+                .catch((e) => console.error('Error enviando broadcast:', e));
+        }
+    });
 }
 
 // Inicializar

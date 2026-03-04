@@ -12,9 +12,10 @@ class MenuDisplay {
         this.isActive = true;
         this.currentSlideId = 'slide1'; // Rastrear cuál slide está activo
         this.supabaseReady = false;
-        this.realtimeChannel = null; // Canal de tiempo real
+        this.realtimeChannel = null;
+        this.broadcastChannel = null; // Canal para BROADCAST (reload forzado)
         this.lastUpdateTime = 0; // Para evitar actualizaciones duplicadas
-        /** Caché de dimensiones por URL: evita peticiones repetidas al medir aspect ratio */
+        /** Caché de dimensiones por URL: misma imagen repetida en el pool no se mide dos veces */
         this.dimensionCache = {};
         this.init();
     }
@@ -257,14 +258,15 @@ class MenuDisplay {
                 throw error;
             }
             
-            // Normalizar datos: duración y frecuencia (frecuencia o repetitions = veces en el pool)
+            // Duración y frecuencia: si no existe o es < 1, se usa 1 (una sola vez en el pool)
             const originalImages = (data || []).map(img => {
                 const duration = parseInt(img.duration) || 5;
-                const frecuencia = Math.max(1, parseInt(img.frecuencia) || parseInt(img.repetitions) || 1);
+                const raw = parseInt(img.frecuencia) || parseInt(img.repetitions) || 1;
+                const frecuencia = (raw < 1 || !Number.isFinite(raw)) ? 1 : raw;
                 return { ...img, duration, frecuencia };
             });
             
-            // Pool expandido: cada elemento se inserta 'frecuencia' veces (más frecuencia = más apariciones)
+            // Pool: cada elemento se añade 'frecuencia' veces (2 → dos veces, 3 → tres, etc.)
             this.images = [];
             originalImages.forEach(img => {
                 for (let i = 0; i < img.frecuencia; i++) {
@@ -272,9 +274,8 @@ class MenuDisplay {
                 }
             });
             
+            // Mezcla DESPUÉS de duplicar para que las repeticiones no salgan seguidas
             this.shuffleImages();
-            
-            console.log(`📊 Pool: ${this.images.length} entradas (frecuencia aplicada)`);
             
             console.log(`✅ Cargadas ${this.images.length} imágenes`);
             
@@ -290,7 +291,7 @@ class MenuDisplay {
     }
 
     shuffleImages() {
-        // Algoritmo Fisher-Yates para mezclar las imágenes
+        // Fisher-Yates: evita que las repeticiones (ej. "2x1 café") salgan una detrás de otra
         for (let i = this.images.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.images[i], this.images[j]] = [this.images[j], this.images[i]];
@@ -325,15 +326,13 @@ class MenuDisplay {
             const channelId = `menu_display_${Date.now()}`;
             this.realtimeChannel = this.supabaseClient.channel(channelId);
             
-            // Suscribirse a cambios en tiempo real
+            const onDataChange = (payload) => {
+                console.log('🔔 Cambio detectado vía Realtime, actualizando pool...', payload.eventType);
+                this.handleRealtimeChange(payload);
+            };
             this.realtimeChannel
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'menu_images' }, 
-                    (payload) => {
-                        console.log('🔄 Cambio detectado en tiempo real:', payload);
-                        this.handleRealtimeChange(payload);
-                    }
-                )
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_images' }, onDataChange)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_control' }, onDataChange)
                 .subscribe((status) => {
                     console.log('📡 Estado de suscripción:', status);
                     if (status === 'SUBSCRIBED') {
@@ -351,6 +350,17 @@ class MenuDisplay {
                         setTimeout(() => this.setupRealtimeSubscription(), 5000);
                     }
                 });
+            
+            // Canal de broadcast para recarga forzada (Admin puede enviar RELOAD)
+            const broadcastChannelName = 'herbalife_display';
+            this.broadcastChannel = this.supabaseClient.channel(broadcastChannelName)
+                .on('broadcast', { event: 'cmd' }, (payload) => {
+                    if (payload.payload?.type === 'RELOAD') {
+                        console.log('🔔 Broadcast RELOAD recibido, recargando pantalla...');
+                        window.location.reload();
+                    }
+                })
+                .subscribe();
                 
         } catch (error) {
             console.error('❌ Error configurando suscripción en tiempo real:', error);
@@ -676,9 +686,10 @@ class MenuDisplay {
         }
         if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
         if (this.realtimeChannel && this.supabaseClient) {
-            try {
-                this.supabaseClient.removeChannel(this.realtimeChannel);
-            } catch (_) {}
+            try { this.supabaseClient.removeChannel(this.realtimeChannel); } catch (_) {}
+        }
+        if (this.broadcastChannel && this.supabaseClient) {
+            try { this.supabaseClient.removeChannel(this.broadcastChannel); } catch (_) {}
         }
     }
 }

@@ -21,8 +21,11 @@
                 <button class="btn btn-primary" onclick="window.open('display.html', '_blank')">
                     📺 Pantalla
                 </button>
-                <button class="btn btn-success" onclick="forceDisplayRefresh()">
+                <button class="btn btn-success" onclick="forceDisplayRefresh()" title="Actualiza el pool en la pantalla en &lt;2 s">
                     🔄 Actualizar Display
+                </button>
+                <button class="btn btn-secondary" onclick="sendDisplayReload()" title="Fuerza F5 en la pantalla (recarga completa)">
+                    📺 Recargar pantalla
                 </button>
                 <button class="btn btn-secondary" onclick="reloadFiles()" title="Recargar archivos">
                     🔃 Recargar
