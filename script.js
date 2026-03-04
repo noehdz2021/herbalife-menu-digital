@@ -642,10 +642,13 @@ async function forceDisplayRefresh() {
                 category: 'sistema',
                 src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8L3N2Zz4=',
                 duration: 1,
-                repeat: 1,
                 active: false
             };
-            const { data: inserted } = await window.supabaseClient.from('menu_images').insert([tempData]).select();
+            const { data: inserted, error: insertError } = await window.supabaseClient.from('menu_images').insert([tempData]).select();
+            if (insertError) {
+                console.error('Fallback INSERT error:', insertError);
+                throw insertError;
+            }
             if (inserted && inserted[0]) {
                 await window.supabaseClient.from('menu_images').delete().eq('id', inserted[0].id);
             }
