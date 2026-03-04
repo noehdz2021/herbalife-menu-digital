@@ -9,11 +9,14 @@ class MenuDisplay {
         this.currentImage = null; // Rastrear la imagen actual
         this.transitionTimeout = null;
         this.timeIntervalId = null;
+        this.periodicRefreshIntervalId = null; // Para limpieza en destroy()
         this.isActive = true;
         this.currentSlideId = 'slide1'; // Rastrear cuál slide está activo
         this.supabaseReady = false;
         this.realtimeChannel = null; // Canal de tiempo real
         this.lastUpdateTime = 0; // Para evitar actualizaciones duplicadas
+        /** Caché de dimensiones por URL: evita peticiones repetidas al medir aspect ratio */
+        this.dimensionCache = {};
         this.init();
     }
 
@@ -29,8 +32,47 @@ class MenuDisplay {
         this.setupRealtimeSubscription();
         this.hideLoadingScreen();
         
-        // Configurar actualización periódica como respaldo
-        this.setupPeriodicRefresh();
+        // Refresco periódico desactivado: Realtime ya actualiza al instante. Menos tráfico = menos Egress.
+        // this.setupPeriodicRefresh();
+        // Si se necesita fallback, descomentar y usará intervalo de 10 minutos (ver setupPeriodicRefresh).
+    }
+
+    /** Clave estable para caché de dimensiones (sin fragmento #) */
+    _cacheKey(src) {
+        if (!src || typeof src !== 'string') return '';
+        const f = src.indexOf('#');
+        return f >= 0 ? src.substring(0, f) : src;
+    }
+
+    /**
+     * Aplica clase y estilos de ajuste según aspect ratio (una sola función para imagen y video).
+     * @param {HTMLImageElement|HTMLVideoElement} element
+     * @param {number} aspectRatio - width/height
+     * @param {boolean} isVideo - true para clases video-* (video-wide, video-vertical, etc.)
+     */
+    applyFitStylesByRatio(element, aspectRatio, isVideo) {
+        const screenRatio = 16 / 9;
+        const bg = isVideo ? '#000000' : 'transparent';
+        let cls;
+        if (aspectRatio > 1.5) {
+            cls = isVideo ? 'video-wide' : 'wide-content';
+        } else if (aspectRatio < 0.8) {
+            cls = isVideo ? 'video-vertical' : 'tall-content';
+        } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
+            cls = isVideo ? 'video-screen-fit' : 'screen-fit';
+        } else {
+            cls = isVideo ? 'video-standard' : 'standard-content';
+        }
+        element.className = cls;
+        element.style.objectFit = aspectRatio > 1.5 || aspectRatio < 0.8 || Math.abs(aspectRatio - screenRatio) >= 0.3 ? 'contain' : 'cover';
+        element.style.background = bg;
+    }
+
+    /** Aplica estilos por defecto (contain) cuando no se pudo obtener ratio */
+    applyFitStylesDefault(element, isVideo) {
+        element.className = isVideo ? 'video-default' : 'default-content';
+        element.style.objectFit = 'contain';
+        element.style.background = isVideo ? '#000000' : 'transparent';
     }
 
     // Función para crear/actualizar fondo difuminado usando la misma imagen
@@ -105,103 +147,50 @@ class MenuDisplay {
         }
     }
 
-    // Función para aplicar ajuste inteligente basado en formato
+    /**
+     * Ajuste inteligente para imágenes. Usa caché de dimensiones para evitar
+     * peticiones repetidas: si la URL ya fue medida, aplica estilos desde memoria.
+     */
     applySmartFit(img, src) {
-        // Crear una imagen temporal para obtener dimensiones
+        const key = this._cacheKey(src);
+        const cached = key && this.dimensionCache[key];
+        if (typeof cached === 'number') {
+            this.applyFitStylesByRatio(img, cached, false);
+            return;
+        }
         const tempImg = new Image();
         tempImg.onload = () => {
-            const width = tempImg.naturalWidth;
-            const height = tempImg.naturalHeight;
-            const aspectRatio = width / height;
-            
-            console.log(`📐 Formato detectado: ${width}x${height} (ratio: ${aspectRatio.toFixed(2)})`);
-            
-            // Para pantalla de 40" (típicamente 16:9 o 4:3)
-            const screenRatio = 16/9; // Asumiendo pantalla 16:9
-            
-            if (aspectRatio > 1.5) {
-                // Imagen muy ancha (panorámica) - usar contain para mostrar todo
-                img.className = 'wide-content';
-                img.style.objectFit = 'contain';
-                img.style.background = 'transparent';
-                console.log('📐 Aplicando: contain (imagen panorámica)');
-            } else if (aspectRatio < 0.8) {
-                // Imagen muy alta (vertical) - usar contain para mostrar todo
-                img.className = 'tall-content';
-                img.style.objectFit = 'contain';
-                img.style.background = 'transparent';
-                console.log('📐 Aplicando: contain (imagen vertical)');
-            } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
-                // Formato similar a la pantalla - usar cover para llenar
-                img.className = 'screen-fit';
-                img.style.objectFit = 'cover';
-                console.log('📐 Aplicando: cover (formato similar a pantalla)');
-            } else {
-                // Formato estándar - usar contain para mostrar completo
-                img.className = 'standard-content';
-                img.style.objectFit = 'contain';
-                img.style.background = 'transparent';
-                console.log('📐 Aplicando: contain (formato estándar)');
-            }
+            if (!img.isConnected) return;
+            const ratio = tempImg.naturalWidth / tempImg.naturalHeight;
+            if (key) this.dimensionCache[key] = ratio;
+            this.applyFitStylesByRatio(img, ratio, false);
         };
-        
         tempImg.onerror = () => {
-            // Si no se puede cargar, usar ajuste por defecto
-            img.className = 'default-content';
-            img.style.objectFit = 'contain';
-            img.style.background = 'transparent';
-            console.log('📐 Aplicando: contain (por defecto)');
+            if (!img.isConnected) return;
+            this.applyFitStylesDefault(img, false);
         };
-        
         tempImg.src = src;
     }
 
-    // Función para aplicar ajuste inteligente para videos
+    /**
+     * Ajuste inteligente para videos. Usa caché de dimensiones: si la URL ya tuvo
+     * metadatos cargados, aplica estilos al instante sin esperar loadedmetadata.
+     */
     applySmartFitVideo(video, src) {
-        // Esperar a que el video cargue los metadatos
-        video.addEventListener('loadedmetadata', () => {
-            const width = video.videoWidth;
-            const height = video.videoHeight;
-            const aspectRatio = width / height;
-            
-            console.log(`🎥 Formato de video detectado: ${width}x${height} (ratio: ${aspectRatio.toFixed(2)})`);
-            
-            // Para pantalla de 40" (típicamente 16:9)
-            const screenRatio = 16/9;
-            
-            if (aspectRatio > 1.5) {
-                // Video muy ancho (panorámico) - usar contain para mostrar todo
-                video.className = 'video-wide';
-                video.style.objectFit = 'contain';
-                video.style.background = '#000000';
-                console.log('🎥 Aplicando: contain (video panorámico)');
-            } else if (aspectRatio < 0.8) {
-                // Video vertical (reels, stories) - usar contain para mostrar completo
-                video.className = 'video-vertical';
-                video.style.objectFit = 'contain';
-                video.style.background = '#000000';
-                console.log('🎥 Aplicando: contain (video vertical/reel)');
-            } else if (Math.abs(aspectRatio - screenRatio) < 0.3) {
-                // Formato similar a la pantalla - usar cover para llenar
-                video.className = 'video-screen-fit';
-                video.style.objectFit = 'cover';
-                console.log('🎥 Aplicando: cover (formato similar a pantalla)');
-            } else {
-                // Formato estándar - usar contain para mostrar completo
-                video.className = 'video-standard';
-                video.style.objectFit = 'contain';
-                video.style.background = '#000000';
-                console.log('🎥 Aplicando: contain (formato estándar)');
-            }
-        });
-        
-        // Fallback si no se pueden cargar los metadatos
-        video.addEventListener('error', () => {
-            video.className = 'video-default';
-            video.style.objectFit = 'contain';
-            video.style.background = '#000000';
-            console.log('🎥 Aplicando: contain (por defecto)');
-        });
+        const key = this._cacheKey(src);
+        const cached = key && this.dimensionCache[key];
+        if (typeof cached === 'number') {
+            this.applyFitStylesByRatio(video, cached, true);
+            return;
+        }
+        const onMeta = () => {
+            const ratio = video.videoWidth / video.videoHeight;
+            if (key) this.dimensionCache[key] = ratio;
+            this.applyFitStylesByRatio(video, ratio, true);
+        };
+        const onError = () => this.applyFitStylesDefault(video, true);
+        video.addEventListener('loadedmetadata', onMeta, { once: true });
+        video.addEventListener('error', onError, { once: true });
     }
 
     async waitForSupabase() {
@@ -413,13 +402,12 @@ class MenuDisplay {
     }
 
     setupPeriodicRefresh() {
-        // Actualización periódica cada 30 segundos como respaldo
-        setInterval(async () => {
+        // Fallback cada 10 minutos (Realtime es la fuente principal; esto reduce Egress)
+        const INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
+        this.periodicRefreshIntervalId = setInterval(async () => {
             if (this.checkSupabaseReady()) {
-                console.log('🔄 Actualización periódica del display...');
                 try {
                     await this.loadData();
-                    // Solo reiniciar si hay cambios significativos
                     const currentCount = this.images.length;
                     if (currentCount !== this.lastImageCount) {
                         this.restart();
@@ -429,7 +417,7 @@ class MenuDisplay {
                     console.error('❌ Error en actualización periódica:', error);
                 }
             }
-        }, 30000); // 30 segundos
+        }, INTERVAL_MS);
     }
 
     setupClock() {
@@ -494,21 +482,30 @@ class MenuDisplay {
         }, validDuration);
     }
 
+    /** Limpia un contenedor de slide: pausa videos y libera recursos antes de vaciar (evita fugas) */
+    clearSlideContent(contentElement) {
+        if (!contentElement) return;
+        const videos = contentElement.querySelectorAll('video');
+        videos.forEach((v) => {
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+        });
+        contentElement.innerHTML = '';
+    }
+
     showCurrentSlide() {
-        // Limpiar timeout anterior si existe
         if (this.transitionTimeout) {
             clearTimeout(this.transitionTimeout);
             this.transitionTimeout = null;
         }
         
-        // Si llegamos al final del pool, resetear y mezclar de nuevo
         if (this.currentPoolIndex >= this.images.length) {
             console.log('🔄 Pool agotado, mezclando de nuevo...');
             this.shuffleImages();
             this.currentPoolIndex = 0;
         }
         
-        // Obtener la imagen actual del pool mezclado
         this.currentImage = this.images[this.currentPoolIndex];
         this.currentPoolIndex++;
         
@@ -516,10 +513,7 @@ class MenuDisplay {
         const contentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
         if (contentElement) {
-            // Limpiar el contenido anterior
-            contentElement.innerHTML = '';
-            
-            // Crear el elemento de media usando la función helper
+            this.clearSlideContent(contentElement);
             this.createMediaElement(this.currentImage, contentElement);
         }
         
@@ -537,7 +531,6 @@ class MenuDisplay {
     }
 
     nextSlide() {
-        // Limpiar timeout anterior si existe
         if (this.transitionTimeout) {
             clearTimeout(this.transitionTimeout);
             this.transitionTimeout = null;
@@ -545,29 +538,22 @@ class MenuDisplay {
         
         if (this.images.length <= 1) return;
         
-        // Si llegamos al final del pool, resetear y mezclar de nuevo
         if (this.currentPoolIndex >= this.images.length) {
             console.log('🔄 Pool agotado, mezclando de nuevo...');
             this.shuffleImages();
             this.currentPoolIndex = 0;
         }
         
-        // Obtener la siguiente imagen del pool mezclado
         this.currentImage = this.images[this.currentPoolIndex];
         this.currentPoolIndex++;
         
-        // Alternar entre slide1 y slide2
         this.currentSlideId = this.currentSlideId === 'slide1' ? 'slide2' : 'slide1';
         
-        // Preparar la nueva imagen en el slide que va a ser activo
         const nextSlide = document.getElementById(this.currentSlideId);
         const nextContentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
         if (nextContentElement) {
-            // Limpiar el contenido anterior
-            nextContentElement.innerHTML = '';
-            
-            // Crear el elemento de media usando la función helper
+            this.clearSlideContent(nextContentElement);
             this.createMediaElement(this.currentImage, nextContentElement);
         }
         
@@ -614,19 +600,14 @@ class MenuDisplay {
         const prevContentElement = document.getElementById(this.currentSlideId.replace('slide', 'slideContent'));
         
         if (prevContentElement) {
-            // Limpiar el contenido anterior
-            prevContentElement.innerHTML = '';
-            
-            // Crear el elemento de media usando la función helper
+            this.clearSlideContent(prevContentElement);
             this.createMediaElement(prevImage, prevContentElement);
         }
         
-        // Hacer la transición
         document.getElementById('slide1').classList.remove('active');
         document.getElementById('slide2').classList.remove('active');
         prevSlide.classList.add('active');
         
-        // Programar la siguiente transición solo para imágenes
         if (prevImage.file_type !== 'video') {
             this.scheduleNextTransition();
         }
@@ -722,11 +703,25 @@ class MenuDisplay {
         }, 2000);
     }
 
-    // Método para limpiar todos los intervalos
     destroy() {
-        if (this.transitionTimeout) clearTimeout(this.transitionTimeout);
-        if (this.timeIntervalId) clearInterval(this.timeIntervalId);
+        if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+            this.transitionTimeout = null;
+        }
+        if (this.timeIntervalId) {
+            clearInterval(this.timeIntervalId);
+            this.timeIntervalId = null;
+        }
+        if (this.periodicRefreshIntervalId) {
+            clearInterval(this.periodicRefreshIntervalId);
+            this.periodicRefreshIntervalId = null;
+        }
         if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
+        if (this.realtimeChannel && this.supabaseClient) {
+            try {
+                this.supabaseClient.removeChannel(this.realtimeChannel);
+            } catch (_) {}
+        }
     }
 }
 
