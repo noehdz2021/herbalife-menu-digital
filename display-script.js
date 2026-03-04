@@ -381,7 +381,12 @@ class MenuDisplay {
         const now = Date.now();
         if (now - this.lastUpdateTime < 1000) return;
         this.lastUpdateTime = now;
-        
+
+        if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+            this.transitionTimeout = null;
+        }
+
         try {
             await this.loadData();
             if (this.currentPoolIndex >= this.images.length) this.currentPoolIndex = 0;
