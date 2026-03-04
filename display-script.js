@@ -9,7 +9,6 @@ class MenuDisplay {
         this.currentImage = null; // Rastrear la imagen actual
         this.transitionTimeout = null;
         this.timeIntervalId = null;
-        this.periodicRefreshIntervalId = null; // Para limpieza en destroy()
         this.isActive = true;
         this.currentSlideId = 'slide1'; // Rastrear cuál slide está activo
         this.supabaseReady = false;
@@ -31,10 +30,6 @@ class MenuDisplay {
         this.setupEventListeners();
         this.setupRealtimeSubscription();
         this.hideLoadingScreen();
-        
-        // Refresco periódico desactivado: Realtime ya actualiza al instante. Menos tráfico = menos Egress.
-        // this.setupPeriodicRefresh();
-        // Si se necesita fallback, descomentar y usará intervalo de 10 minutos (ver setupPeriodicRefresh).
     }
 
     /** Clave estable para caché de dimensiones (sin fragmento #) */
@@ -262,29 +257,24 @@ class MenuDisplay {
                 throw error;
             }
             
-            // Guardar las imágenes originales
-            const originalImages = (data || []).map(img => ({
-                ...img,
-                duration: parseInt(img.duration) || 5,
-                repeat: parseInt(img.repeat) || 1
-            }));
+            // Normalizar datos: duración y frecuencia (frecuencia o repetitions = veces en el pool)
+            const originalImages = (data || []).map(img => {
+                const duration = parseInt(img.duration) || 5;
+                const frecuencia = Math.max(1, parseInt(img.frecuencia) || parseInt(img.repetitions) || 1);
+                return { ...img, duration, frecuencia };
+            });
             
-            // Crear pool expandido: cada imagen aparece 'repeat' veces
+            // Pool expandido: cada elemento se inserta 'frecuencia' veces (más frecuencia = más apariciones)
             this.images = [];
             originalImages.forEach(img => {
-                for (let i = 0; i < img.repeat; i++) {
-                    this.images.push({ ...img }); // Crear copia para cada repetición
+                for (let i = 0; i < img.frecuencia; i++) {
+                    this.images.push({ ...img });
                 }
             });
             
-            // Mezclar el pool aleatoriamente (algoritmo Fisher-Yates)
             this.shuffleImages();
             
-            console.log(`📊 Imágenes cargadas con duraciones:`, this.images.map(img => ({
-                title: img.title,
-                duration: img.duration,
-                repeat: img.repeat
-            })));
+            console.log(`📊 Pool: ${this.images.length} entradas (frecuencia aplicada)`);
             
             console.log(`✅ Cargadas ${this.images.length} imágenes`);
             
@@ -380,44 +370,16 @@ class MenuDisplay {
 
     async handleRealtimeChange(payload) {
         const now = Date.now();
-        
-        // Evitar actualizaciones duplicadas en un corto período
-        if (now - this.lastUpdateTime < 1000) {
-            console.log('⏭️ Actualización ignorada (muy reciente)');
-            return;
-        }
-        
+        if (now - this.lastUpdateTime < 1000) return;
         this.lastUpdateTime = now;
         
-        console.log('🔄 Procesando cambio en tiempo real:', payload.eventType);
-        
-        // Recargar datos y reiniciar el slideshow
         try {
             await this.loadData();
-            this.restart();
-            console.log('✅ Display actualizado desde tiempo real');
+            if (this.currentPoolIndex >= this.images.length) this.currentPoolIndex = 0;
+            console.log('✅ Pool actualizado por Realtime (slide actual sigue hasta terminar su tiempo)');
         } catch (error) {
             console.error('❌ Error actualizando display:', error);
         }
-    }
-
-    setupPeriodicRefresh() {
-        // Fallback cada 10 minutos (Realtime es la fuente principal; esto reduce Egress)
-        const INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
-        this.periodicRefreshIntervalId = setInterval(async () => {
-            if (this.checkSupabaseReady()) {
-                try {
-                    await this.loadData();
-                    const currentCount = this.images.length;
-                    if (currentCount !== this.lastImageCount) {
-                        this.restart();
-                        this.lastImageCount = currentCount;
-                    }
-                } catch (error) {
-                    console.error('❌ Error en actualización periódica:', error);
-                }
-            }
-        }, INTERVAL_MS);
     }
 
     setupClock() {
@@ -531,11 +493,11 @@ class MenuDisplay {
     }
 
     nextSlide() {
+        // Limpiar timer primero para evitar acumulación si Realtime actualiza durante la transición
         if (this.transitionTimeout) {
             clearTimeout(this.transitionTimeout);
             this.transitionTimeout = null;
         }
-        
         if (this.images.length <= 1) return;
         
         if (this.currentPoolIndex >= this.images.length) {
@@ -711,10 +673,6 @@ class MenuDisplay {
         if (this.timeIntervalId) {
             clearInterval(this.timeIntervalId);
             this.timeIntervalId = null;
-        }
-        if (this.periodicRefreshIntervalId) {
-            clearInterval(this.periodicRefreshIntervalId);
-            this.periodicRefreshIntervalId = null;
         }
         if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
         if (this.realtimeChannel && this.supabaseClient) {
